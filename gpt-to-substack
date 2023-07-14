@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+
+import click
+import sys
+import json
+
+def flatten(ll):
+    out = []
+    for l in ll:
+        out.extend(l)
+    return out
+
+def add_str(line):
+    if line.startswith("key"):
+        return line
+    return "str " + line
+
+def remove_codetype(line):
+    if line.startswith("```") and " " not in line and line != "```":
+        return "```X"
+    return line
+def remove_bullets(lines):
+    in_bullet = False
+    for i in range(len(lines)):
+        line = lines[i]
+        if line.startswith("-") and not in_bullet:
+            in_bullet = True
+        elif line.startswith("-") and in_bullet:
+            lines[i] = lines[i][2:]
+        elif not line.startswith("-") and in_bullet:
+            in_bullet = False
+    return lines
+
+def escape_quote(line):
+    return line.replace("'","")
+
+def add_return(string):
+    return [string, "key Return"]
+
+def chunk_string(string, chunk_size=200):
+    return [string[i:i+chunk_size] for i in range(0, len(string), chunk_size)]
+
+def escape_codeblock(line):
+    if line.startswith("```X") and " " not in line:
+        return "```"
+    if line.startswith("```") and " " not in line and "X" not in line:
+        return "\n".join(['keydown Control_L','key Return','keyup Control_L'])
+    return line
+
+def fix_bold(line):
+    if line.startswith("```"):
+        return [line]
+    lines = line.split("`")
+    bold = "\n" + "\n".join(['keydown Control_L','key b','keyup Control_L']) + "\n"
+    return bold.join(lines).split("\n")
+
+@click.command()
+@click.option('--chunk_size', default=200, help='Size of the chunks the string is broken into.')
+def transform(chunk_size):
+    '''
+    This script does some text transformation. It adds special strings, escapes 
+    quote characters, breaks strings into chunks, adds 'Return' key presses, 
+    and more. It reads from the standard input and writes to the standard output.
+    '''
+    lines = sys.stdin.readlines()
+    a = [lines]
+    a.append([l.rstrip() for l in a[-1]])
+    a.append(remove_bullets(a[-1]))
+    a.append(flatten([add_return(l) for l in a[-1]]))
+    a.append(flatten([chunk_string(l, chunk_size) for l in a[-1]]))
+    a.append(flatten([fix_bold(l) for l in a[-1]]))
+    a.append([remove_codetype(l) for l in a[-1]])
+    #print(json.dumps(a[-1]))
+    a.append([escape_codeblock(l) for l in a[-1]])
+    a.append([escape_quote(l) for l in a[-1]])
+    a.append([add_str(l) for l in a[-1]])
+    print("\n".join(a[-1]))
+
+if __name__ == '__main__':
+    transform()
