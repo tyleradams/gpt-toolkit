@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+import os
+import click
+import openai
+import sys
+import json
+import uuid   # Import uuid library
+
+def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
+    d = openai.ChatCompletion.create(
+        model=model,
+        messages=[{"role": "user", "content": content}],
+        n=n,
+        temperature=temperature,
+        top_p=top_p,
+        stream=stream,
+        stop=stop,
+        max_tokens=max_tokens,
+        presence_penalty=presence_penalty,
+        frequency_penalty=frequency_penalty,
+        logit_bias=json.loads(logit_bias),
+        user=user
+    )
+    return d.choices[0]["message"]["content"]
+
+@click.command()
+@click.option('-m', '--model', default='gpt-4', help='Specifies the AI model to use.')
+@click.option('--n', type=int, default=1, help='Specifies how many chat completion choices to generate for each input message.')
+@click.option('--temperature', type=float, default=1.0, help='Sets the sampling temperature between 0 and 2.')
+@click.option('--top-p', type=float, default=1.0, help='Sets the alternative to sampling with temperature, called nucleus sampling.')
+@click.option('--stream', type=bool, default=False, help='Sets whether partial message deltas will be sent.')
+@click.option('--stop', type=str, default=None, help='Sets up to 4 sequences where the API will stop generating further tokens.')
+@click.option('--max-tokens', type=int, default=None, help='Defines maximum number of tokens to generate in the chat completion.')
+@click.option('--presence-penalty', type=float, default=0.0, help='Sets the penalty for new tokens based on whether they appear in the text so far.')
+@click.option('--frequency-penalty', type=float, default=0.0, help='Sets the penalty for new tokens based on their existing frequency in the text so far.')
+@click.option('--logit-bias', type=str, default="{}", help='Allows to modify the likelihood of specified tokens appearing in the completion.')
+@click.option('--user', type=str, default=str(uuid.uuid4()), help='An identifier representing your end-user, serves to monitor and detect abuse.')
+def main(model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
+    message = sys.stdin.read()
+    print(gpt(message, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user))
+
+if __name__ == "__main__":
+    openai.organization = os.getenv("OPENAI_ORGANIZATION")
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    main()  # pylint: disable=no-value-for-parameter
