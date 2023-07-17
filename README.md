@@ -20,6 +20,7 @@ TODO
 
 - Set your `OPENAI_ORGANIZATION` and `OPENAI_API_KEY` in your environment variables.
 ## Usage
+### gpt
 
 Pass your prompt as stdin, for example
 
@@ -27,14 +28,20 @@ Pass your prompt as stdin, for example
 $ echo Count from 1 to 10 | gpt
 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 ```
-
-## Recipes
+#### Recipes
 This section mainly shows ways to futz with stdin
 ```
 $ echo This is a prompt | gpt
 $ cat prompt.txt | gpt
 $ (echo This goes above the prompt file; cat prompt.txt;) | gpt
 $ seq 10 | (echo This goes above counting 1 to 10; cat;) | gpt
+```
+
+
+### gpt-to-substack
+Pass the gpt output as stdin and the substack output to xte to type it in substack
+```
+echo Write a fibonacci function | gpt | gpt-to-substack | xte
 ```
 
 ## Example Parameters
