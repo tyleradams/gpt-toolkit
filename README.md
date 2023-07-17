@@ -6,9 +6,8 @@ Here, we encapsulate the OpenAI chat completion API and build a command line int
 
 ## Requirements
 
-1. OpenAI Python v0.27.0
-2. Click
-3. Python 3.6 and above
+1. Linux
+2. Python 3.6 and above
 
 ## Installation
 ### From APT
