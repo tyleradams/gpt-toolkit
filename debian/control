@@ -1,0 +1,15 @@
+Source: gpt-toolkit
+Section: utils
+Priority: optional
+Maintainer: Tyler Adams <tyler@blitzblitzblitz.com>
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.6.0
+Homepage: https://github.com/tyleradams/gpt-toolkit
+Vcs-Browser: https://github.com/tyleradams/gpt-toolkit
+Vcs-Git: https://github.com/tyleradams/gpt-toolkit.git
+Rules-Requires-Root: no
+
+Package: gpt-toolkit
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Example repo to demonstrate publishing to apt

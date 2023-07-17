@@ -1,0 +1,108 @@
+gpt-toolkit (1.0.2-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * fix makefile patch bump
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Mon, 17 Jul 2023 07:39:33 -0400
+gpt-toolkit (1.0.1-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * update readme patch bump
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Mon, 17 Jul 2023 07:39:13 -0400
+gpt-toolkit (1.0.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * major bump
+
+ -- Tyler Adams <coppero1237@gmail.com>  Mon, 17 Jul 2023 07:05:52 -0400
+gpt-toolkit (0.15.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Add repl mode
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 21:36:48 -0400
+gpt-toolkit (0.14.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * gpt takes file input
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 21:14:01 -0400
+gpt-toolkit (0.13.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Add gpt extract code
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:56:41 -0400
+gpt-toolkit (0.12.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Default to 3.5
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:53:28 -0400
+gpt-toolkit (0.11.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * update-readme
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:35:02 -0400
+gpt-toolkit (0.10.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * update-readme
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:08:38 -0400
+gpt-toolkit (0.9.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * update-readme
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:08:25 -0400
+gpt-toolkit (0.8.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Add installation  instructions
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:05:48 -0400
+gpt-toolkit (0.7.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * update readme
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:01:23 -0400
+gpt-toolkit (0.6.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * update readme
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:00:15 -0400
+gpt-toolkit (0.5.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * fix n
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 20:00:03 -0400
+gpt-toolkit (0.4.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Makefiles and improve gpt
+
+ -- Tyler Adams <coppero1237@gmail.com>  Sun, 16 Jul 2023 14:06:39 -0400
+gpt-toolkit (0.3.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * readme
+
+ -- Tyler Adams <coppero1237@gmail.com>  Thu, 13 Jul 2023 23:06:39 -0400
+gpt-toolkit (0.2.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * add licence
+
+ -- Tyler Adams <coppero1237@gmail.com>  Thu, 13 Jul 2023 23:06:23 -0400
+gpt-toolkit (0.1.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * init
+
+ -- Tyler Adams <coppero1237@gmail.com>  Thu, 13 Jul 2023 23:04:15 -0400
