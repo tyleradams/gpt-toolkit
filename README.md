@@ -11,6 +11,7 @@ Here, we encapsulate the OpenAI chat completion API and build a command line int
 
 ## Installation
 ### From APT
+TODO
 ### From Source
 Make sure you have python3 installed
 ```
