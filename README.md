@@ -11,11 +11,14 @@ Here, we encapsulate the OpenAI chat completion API and build a command line int
 3. Python 3.6 and above
 
 ## Installation
-
-Clone the repository and install the requirements
-
+### From APT
+### From Source
+Make sure you have python3 installed
 ```
-TODO
+$ git clone git@github.com:tyleradams/gpt-toolkit.git
+$ cd gpt-toolkit
+$ make
+$ sudo make install
 ```
 
 - Set your `OPENAI_ORGANIZATION` and `OPENAI_API_KEY` in your environment variables.
