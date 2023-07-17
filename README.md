@@ -49,6 +49,12 @@ $ for f in $(cat files.txt); do
 > cp f f.bak && cat prompt $f | gpt > $f.tmp && mv $f.tmp $f &
 > done
 ```
+This section shows how to run gpt as a shebang:
+```
+#!/usr/bin/env -S gpt -m gpt-4 -f
+
+Print out 1 to 10
+```
 
 
 ### gpt-to-substack

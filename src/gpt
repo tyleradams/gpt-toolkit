@@ -5,7 +5,7 @@ import click
 import openai
 import sys
 import json
-import uuid   # Import uuid library
+import uuid
 
 def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
     d = openai.ChatCompletion.create(
@@ -24,7 +24,8 @@ def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presenc
     )
     return d.choices[0]["message"]["content"]
 
-@click.command()
+@click.command(context_settings={"ignore_unknown_options": True,"allow_extra_args": True})
+@click.option('-f', type=str, default=None, help='Use file instead of stdin')
 @click.option('-m', '--model', default='gpt-3.5-turbo', help='Specifies the AI model to use.')
 @click.option('-n', type=int, default=1, help='Specifies how many chat completion choices to generate for each input message.')
 @click.option('--temperature', type=float, default=1.0, help='Sets the sampling temperature between 0 and 2.')
@@ -36,8 +37,12 @@ def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presenc
 @click.option('--frequency-penalty', type=float, default=0.0, help='Sets the penalty for new tokens based on their existing frequency in the text so far.')
 @click.option('--logit-bias', type=str, default="{}", help='Allows to modify the likelihood of specified tokens appearing in the completion.')
 @click.option('--user', type=str, default=str(uuid.uuid4()), help='An identifier representing your end-user, serves to monitor and detect abuse.')
-def main(model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
-    message = sys.stdin.read()
+def main(f, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, *args):
+    if f:
+        with open(f) as fp:
+            message = fp.read()
+    else:
+        message = sys.stdin.read()
     print(gpt(message, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user))
 
 if __name__ == "__main__":
