@@ -39,6 +39,16 @@ $ cat prompt.txt | gpt
 $ (echo This goes above the prompt file; cat prompt.txt;) | gpt
 $ seq 10 | (echo This goes above counting 1 to 10; cat;) | gpt
 ```
+This section shows how to overwrite a file using gpt
+```
+$ cp f f.bak && cat prompt f | gpt > a && mv a f
+```
+This section shows how to run many gpts in parallel on different files
+```
+$ for f in $(cat files.txt); do
+> cp f f.bak && cat prompt $f | gpt > $f.tmp && mv $f.tmp $f &
+> done
+```
 
 
 ### gpt-to-substack
