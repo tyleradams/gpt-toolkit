@@ -7,10 +7,10 @@ import sys
 import json
 import uuid
 
-def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
+def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, conversation_history):
     d = openai.ChatCompletion.create(
         model=model,
-        messages=[{"role": "user", "content": content}],
+        messages=[*conversation_history, {"role": "user", "content": content}],
         n=n,
         temperature=temperature,
         top_p=top_p,
@@ -25,7 +25,6 @@ def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presenc
     return d.choices[0]["message"]["content"]
 
 @click.command(context_settings={"ignore_unknown_options": True,"allow_extra_args": True})
-@click.option('-f', type=str, default=None, help='Use file instead of stdin')
 @click.option('-m', '--model', default='gpt-3.5-turbo', help='Specifies the AI model to use.')
 @click.option('-n', type=int, default=1, help='Specifies how many chat completion choices to generate for each input message.')
 @click.option('--temperature', type=float, default=1.0, help='Sets the sampling temperature between 0 and 2.')
@@ -37,13 +36,31 @@ def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presenc
 @click.option('--frequency-penalty', type=float, default=0.0, help='Sets the penalty for new tokens based on their existing frequency in the text so far.')
 @click.option('--logit-bias', type=str, default="{}", help='Allows to modify the likelihood of specified tokens appearing in the completion.')
 @click.option('--user', type=str, default=str(uuid.uuid4()), help='An identifier representing your end-user, serves to monitor and detect abuse.')
-def main(f, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, *args):
-    if f:
+@click.option('--repl', is_flag=True, help='Enable REPL mode.')
+@click.option('-f', type=str, help='Use file instead of stdin')
+def main(model, repl, f, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
+    if repl and f:
+        raise Exception("Cannot enable both repl mode and use a file input yet")
+    if repl and not f:
+        conversation_history = []
+        while True:
+            content = input("> ")
+            if content.lower() == "exit":
+                return
+            assistant_response = gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, conversation_history)
+            conversation_history.append({"role": "user", "content": content})
+            conversation_history.append({"role": "assistant", "content": assistant_response})
+            print(assistant_response)
+    elif not repl and f:
         with open(f) as fp:
             message = fp.read()
-    else:
+    elif not repl and not f:
         message = sys.stdin.read()
-    print(gpt(message, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user))
+    else:
+        raise Exception(f"Unreachable code exception {repl} {f}")
+
+    print(gpt(message, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, []))
+
 
 if __name__ == "__main__":
     openai.organization = os.getenv("OPENAI_ORGANIZATION")
