@@ -11,10 +11,18 @@ Here, we encapsulate the OpenAI chat completion API and build a command line int
 
 ## Installation
 ### From APT
-TODO
-### From Source
-Make sure you have python3 installed
 ```
+$ sudo add-apt-repository ppa:code-faster/ppa
+$ sudo apt update
+$ sudo apt install gpt-toolkit
+```
+
+### From Source
+Make sure you have python3 and the misc-toolkit installed
+```
+$ sudo add-apt-repository ppa:code-faster/ppa
+$ sudo apt update
+$ sudo apt install misc-toolkit
 $ git clone git@github.com:tyleradams/gpt-toolkit.git
 $ cd gpt-toolkit
 $ make
