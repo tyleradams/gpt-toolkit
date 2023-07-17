@@ -25,7 +25,7 @@ def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presenc
     return d.choices[0]["message"]["content"]
 
 @click.command()
-@click.option('-m', '--model', default='gpt-4', help='Specifies the AI model to use.')
+@click.option('-m', '--model', default='gpt-3.5-turbo', help='Specifies the AI model to use.')
 @click.option('-n', type=int, default=1, help='Specifies how many chat completion choices to generate for each input message.')
 @click.option('--temperature', type=float, default=1.0, help='Sets the sampling temperature between 0 and 2.')
 @click.option('--top-p', type=float, default=1.0, help='Sets the alternative to sampling with temperature, called nucleus sampling.')
