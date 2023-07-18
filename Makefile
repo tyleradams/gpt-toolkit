@@ -16,6 +16,7 @@ install :
 	export prefix
 	(cd src; prefix=/usr/local make install)
 package:
+	git log --date=format:'%a, %d %b %Y %H:%M:%S %z' | git-to-changelog jammy gpt-toolkit > debian/changelog
 	mkdir -p target/bin
 	(cd src; make)
 	tar czf target/gpt-toolkit_${version}.orig.tar.gz src --transform "s#src#gpt-toolkit-${version}#"
