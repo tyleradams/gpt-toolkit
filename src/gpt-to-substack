@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-
+D = False
 import click
-import sys
 import json
+import re
+import sys
 
+CTRL_RETURN = "\n".join(['keydown Control_L','key Return','keyup Control_L'])
 def flatten(ll):
     out = []
     for l in ll:
@@ -15,10 +17,25 @@ def add_str(line):
         return line
     return "str " + line
 
-def remove_codetype(line):
-    if line.startswith("```") and " " not in line and line != "```":
-        return "```X"
-    return line
+def remove_codetype(lines):
+    in_block = False
+    for i in range(len(lines)):
+        line = lines[i]
+        if in_block and line.startswith('```'):
+            in_block = False
+        elif not in_block and line.startswith('```'):
+            lines[i] = "```X"
+            in_block = True
+    return lines
+
+def remove_numbers(lines):
+    for i in range(len(lines)):
+        line = lines[i]
+        is_number_line = re.match(r'^\d\d*\. ', line)
+        if is_number_line:
+            lines[i] = lines[i] + "\nkey Return"
+    return lines
+
 def remove_bullets(lines):
     in_bullet = False
     for i in range(len(lines)):
@@ -34,18 +51,26 @@ def remove_bullets(lines):
 def escape_quote(line):
     return line.replace("'","")
 
-def add_return(string):
-    return [string, "key Return"]
+def add_return(lines):
+    for i in range(len(lines)):
+        string = lines[i]
+        if string.startswith("```") or lines[i] == CTRL_RETURN or (i + 1 < len(lines) and lines[i+1] == CTRL_RETURN):
+            lines[i] = [string]
+        else:
+            lines[i] = [string, "key Return"]
+    return lines
 
 def chunk_string(string, chunk_size=200):
     return [string[i:i+chunk_size] for i in range(0, len(string), chunk_size)]
 
-def escape_codeblock(line):
-    if line.startswith("```X") and " " not in line:
-        return "```"
-    if line.startswith("```") and " " not in line and "X" not in line:
-        return "\n".join(['keydown Control_L','key Return','keyup Control_L'])
-    return line
+def escape_codeblock(lines):
+    for i in range(len(lines)):
+        line = lines[i]
+        if line.startswith("```X") and " " not in line:
+            lines[i] = "```"
+        if line.startswith("```") and " " not in line and "X" not in line:
+            lines[i] = "\n".join(['keydown Control_L','key Return','keyup Control_L'])
+    return lines
 
 def fix_bold(line):
     if line.startswith("```"):
@@ -66,12 +91,13 @@ def transform(chunk_size):
     a = [lines]
     a.append([l.rstrip() for l in a[-1]])
     a.append(remove_bullets(a[-1]))
-    a.append(flatten([add_return(l) for l in a[-1]]))
+    a.append(remove_numbers(a[-1]))
+    a.append(remove_codetype(a[-1]))
+    a.append(escape_codeblock(a[-1]))
+    a.append(flatten(add_return(a[-1])))
+    D and print(json.dumps(a[-1]))
     a.append(flatten([chunk_string(l, chunk_size) for l in a[-1]]))
     a.append(flatten([fix_bold(l) for l in a[-1]]))
-    a.append([remove_codetype(l) for l in a[-1]])
-    #print(json.dumps(a[-1]))
-    a.append([escape_codeblock(l) for l in a[-1]])
     a.append([escape_quote(l) for l in a[-1]])
     a.append([add_str(l) for l in a[-1]])
     print("\n".join(a[-1]))
