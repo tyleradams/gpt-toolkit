@@ -21,9 +21,10 @@ def remove_codetype(lines):
     in_block = False
     for i in range(len(lines)):
         line = lines[i]
-        if in_block and line.startswith('```'):
+        if in_block and re.match(r'^ *```', line):
+            lines[i] = '```'
             in_block = False
-        elif not in_block and line.startswith('```'):
+        elif not in_block and re.match(r'^ *```', line):
             lines[i] = "```X"
             in_block = True
     return lines
