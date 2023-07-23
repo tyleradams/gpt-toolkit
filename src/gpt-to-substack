@@ -80,6 +80,14 @@ def fix_bold(line):
     bold = "\n" + "\n".join(['keydown Control_L','key b','keyup Control_L']) + "\n"
     return bold.join(lines).split("\n")
 
+def fix_italics(line):
+    if line.startswith("```"):
+        return [line]
+    lines = line.split("**")
+    italics = "\n" + "\n".join(['keydown Control_L','key i','keyup Control_L']) + "\n"
+    return italics.join(lines).split("\n")
+
+
 @click.command()
 @click.option('--chunk_size', default=200, help='Size of the chunks the string is broken into.')
 def transform(chunk_size):
@@ -99,6 +107,7 @@ def transform(chunk_size):
     D and print(json.dumps(a[-1]))
     a.append(flatten([chunk_string(l, chunk_size) for l in a[-1]]))
     a.append(flatten([fix_bold(l) for l in a[-1]]))
+    a.append(flatten([fix_italics(l) for l in a[-1]]))
     a.append([escape_quote(l) for l in a[-1]])
     a.append([add_str(l) for l in a[-1]])
     print("\n".join(a[-1]))
