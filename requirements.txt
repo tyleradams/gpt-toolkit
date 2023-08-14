@@ -1,3 +1,4 @@
 click==8.0.4
 openai==0.27.8
 tiktoken==0.4.0
+readline==6.2.4.1
