@@ -27,6 +27,7 @@ def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presenc
 
 @click.command(context_settings={"ignore_unknown_options": True,"allow_extra_args": True})
 @click.option('-m', '--model', default='gpt-3.5-turbo', help='Specifies the AI model to use.')
+@click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4')
 @click.option('-n', type=int, default=1, help='Specifies how many chat completion choices to generate for each input message.')
 @click.option('--temperature', type=float, default=1.0, help='Sets the sampling temperature between 0 and 2.')
 @click.option('--top-p', type=float, default=1.0, help='Sets the alternative to sampling with temperature, called nucleus sampling.')
@@ -39,7 +40,9 @@ def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presenc
 @click.option('--user', type=str, default=str(uuid.uuid4()), help='An identifier representing your end-user, serves to monitor and detect abuse.')
 @click.option('--repl', is_flag=True, help='Enable REPL mode.')
 @click.option('-f', type=str, help='Use file instead of stdin')
-def main(model, repl, f, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
+def main(model, model_set_to_gpt4, repl, f, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
+    if model_set_to_gpt4:
+        model='gpt-4'
     if repl and f:
         raise Exception("Cannot enable both repl mode and use a file input yet")
     if repl and not f:
