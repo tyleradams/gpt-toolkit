@@ -1,0 +1,185 @@
+.TH GPT 1 "2025-10-10" "gpt-toolkit 1.4.0" "User Commands"
+.SH NAME
+gpt \- command-line interface for OpenAI GPT models
+.SH SYNOPSIS
+.B gpt
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B gpt
+is a Unix-style command-line interface for OpenAI's GPT models (GPT-4, GPT-5).
+It reads prompts from stdin (or a file), sends them to the OpenAI API, and outputs responses to stdout.
+Designed for pipe-based workflows and text filtering.
+.PP
+The tool follows Unix philosophy: text in, text out. It's composable, scriptable, and does one thing well.
+.SH OPTIONS
+.SS "Model Selection"
+.TP
+.BR \-m ", " \-\-model " \fIMODEL\fR"
+Specify the AI model to use (default: gpt-5)
+.TP
+.BR \-5
+Use gpt-5 model (default)
+.TP
+.BR \-4
+Use gpt-4 model
+.TP
+.BR \-\-mini
+Use gpt-5-mini model (faster, cheaper)
+.TP
+.BR \-\-nano
+Use gpt-5-nano model (fastest, cheapest)
+.SS "GPT-5 Specific Options"
+.TP
+.BR \-\-reasoning\-effort " \fILEVEL\fR"
+Control reasoning effort for GPT-5 models. Options: minimal, low, medium (default), high.
+Higher values maximize quality but use more tokens. Lower values maximize speed.
+.TP
+.BR \-\-verbosity " \fILEVEL\fR"
+Control output length. Options: low, medium (default), high.
+.TP
+.BR \-\-max\-completion\-tokens " \fIN\fR"
+Maximum number of tokens to generate
+.SS "Sampling Parameters"
+.TP
+.BR \-\-temperature " \fIFLOAT\fR"
+Sampling temperature between 0 and 2 (default: 1.0). Lower values make output more deterministic.
+.TP
+.BR \-\-top\-p " \fIFLOAT\fR"
+Nucleus sampling parameter (default: 1.0)
+.TP
+.BR \-\-stop " \fITEXT\fR"
+Up to 4 sequences where the API stops generating tokens
+.SS "Input/Output Modes"
+.TP
+.BR \-f " \fIFILE\fR"
+Read prompt from FILE instead of stdin
+.TP
+.BR \-\-repl
+Enable REPL mode for interactive conversations. Type 'exit' or 'quit' to exit.
+.TP
+.BR \-h ", " \-\-help
+Show help message and exit
+.SH ENVIRONMENT
+.TP
+.B OPENAI_API_KEY
+OpenAI API key (required)
+.TP
+.B OPENAI_ORGANIZATION
+OpenAI organization ID (optional)
+.SH EXAMPLES
+.SS "Basic Usage"
+.PP
+Simple prompt:
+.nf
+.RS
+echo "Count from 1 to 10" | gpt
+.RE
+.fi
+.PP
+Use GPT-4:
+.nf
+.RS
+echo "What is 2+2?" | gpt -4
+.RE
+.fi
+.PP
+Read from file:
+.nf
+.RS
+gpt -f prompt.txt
+.RE
+.fi
+.SS "GPT-5 Reasoning Control"
+.PP
+Fast response for simple task:
+.nf
+.RS
+echo "What is the capital of France?" | gpt --reasoning-effort minimal
+.RE
+.fi
+.PP
+Deep reasoning for complex problem:
+.nf
+.RS
+echo "Solve this complex math problem..." | gpt --reasoning-effort high
+.RE
+.fi
+.PP
+Concise output:
+.nf
+.RS
+echo "Explain quantum computing" | gpt --verbosity low
+.RE
+.fi
+.SS "Interactive Mode"
+.PP
+Start REPL:
+.nf
+.RS
+gpt --repl
+.RE
+.fi
+.SS "Pipeline Examples"
+.PP
+Combine prompt with file content:
+.nf
+.RS
+(echo "Summarize this:"; cat document.txt) | gpt
+.RE
+.fi
+.PP
+Extract and save code:
+.nf
+.RS
+echo "Write a Python hello world" | gpt | gpt-extract-code > hello.py
+.RE
+.fi
+.PP
+Process multiple files in parallel:
+.nf
+.RS
+for f in *.txt; do
+  (echo "Improve:"; cat "$f") | gpt > "$f.new" &
+done
+wait
+.RE
+.fi
+.SS "Shebang Usage"
+.PP
+Create executable GPT script:
+.nf
+.RS
+#!/usr/bin/env -S gpt -m gpt-5 -f
+Write a bash function that says hello
+.RE
+.fi
+.SH FILES
+.TP
+.I ~/.config/
+Configuration files may be stored here (if implemented)
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+Error (API error, invalid arguments, etc.)
+.SH NOTES
+.PP
+GPT-5 reasoning tokens count toward output token usage and billing.
+.PP
+The API is non-deterministic by default. Use
+.B --temperature 0
+for mostly deterministic outputs.
+.PP
+This tool requires an active internet connection and valid OpenAI API credentials.
+.SH SEE ALSO
+.BR gpt-extract-code (1),
+.BR gpt-to-substack (1),
+.BR gpt-token-length (1)
+.PP
+OpenAI API documentation: https://platform.openai.com/docs
+.PP
+Project homepage: https://github.com/tyleradams/gpt-toolkit
+.SH AUTHOR
+Tyler Adams <tyler@blitzblitzblitz.com>
