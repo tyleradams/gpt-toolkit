@@ -2,71 +2,121 @@
 
 import os
 import click
-import openai
+from openai import OpenAI
 import sys
-import json
-import uuid
 import readline
 
-def gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, conversation_history):
-    d = openai.ChatCompletion.create(
-        model=model,
-        messages=[*conversation_history, {"role": "user", "content": content}],
-        n=n,
-        temperature=temperature,
-        top_p=top_p,
-        stream=stream,
-        stop=stop,
-        max_tokens=max_tokens,
-        presence_penalty=presence_penalty,
-        frequency_penalty=frequency_penalty,
-        logit_bias=json.loads(logit_bias),
-        user=user
+def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history):
+    """Make a GPT API call with the modern OpenAI SDK."""
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        organization=os.getenv("OPENAI_ORGANIZATION")
     )
-    return d.choices[0]["message"]["content"]
 
-@click.command(context_settings={"ignore_unknown_options": True,"allow_extra_args": True})
-@click.option('-m', '--model', default='gpt-3.5-turbo', help='Specifies the AI model to use.')
+    # Build the API parameters
+    params = {
+        "model": model,
+        "messages": [*conversation_history, {"role": "user", "content": content}],
+        "temperature": temperature,
+        "top_p": top_p,
+        "stream": stream,
+    }
+
+    # Add optional parameters only if specified
+    if stop:
+        params["stop"] = stop
+    if max_completion_tokens:
+        params["max_completion_tokens"] = max_completion_tokens
+
+    # Add GPT-5 specific parameters for reasoning models
+    if model.startswith("gpt-5") or model.startswith("o"):
+        if reasoning_effort:
+            params["reasoning_effort"] = reasoning_effort
+        if verbosity:
+            params["verbosity"] = verbosity
+
+    response = client.chat.completions.create(**params)
+    return response.choices[0].message.content
+
+
+@click.command(context_settings={"ignore_unknown_options": True, "allow_extra_args": True, "help_option_names": ['-h', '--help']})
+@click.option('-m', '--model', default='gpt-5', help='Specifies the AI model to use (default: gpt-5).')
+@click.option('-5', 'model_set_to_gpt5', is_flag=True, help='Sets the model to gpt-5 (default)')
 @click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4')
-@click.option('-n', type=int, default=1, help='Specifies how many chat completion choices to generate for each input message.')
+@click.option('--mini', 'model_set_to_mini', is_flag=True, help='Sets the model to gpt-5-mini')
+@click.option('--nano', 'model_set_to_nano', is_flag=True, help='Sets the model to gpt-5-nano')
 @click.option('--temperature', type=float, default=1.0, help='Sets the sampling temperature between 0 and 2.')
-@click.option('--top-p', type=float, default=1.0, help='Sets the alternative to sampling with temperature, called nucleus sampling.')
-@click.option('--stream', type=bool, default=False, help='Sets whether partial message deltas will be sent.')
-@click.option('--stop', type=str, default=None, help='Sets up to 4 sequences where the API will stop generating further tokens.')
-@click.option('--max-tokens', type=int, default=None, help='Defines maximum number of tokens to generate in the chat completion.')
-@click.option('--presence-penalty', type=float, default=0.0, help='Sets the penalty for new tokens based on whether they appear in the text so far.')
-@click.option('--frequency-penalty', type=float, default=0.0, help='Sets the penalty for new tokens based on their existing frequency in the text so far.')
-@click.option('--logit-bias', type=str, default="{}", help='Allows to modify the likelihood of specified tokens appearing in the completion.')
-@click.option('--user', type=str, default=str(uuid.uuid4()), help='An identifier representing your end-user, serves to monitor and detect abuse.')
-@click.option('--repl', is_flag=True, help='Enable REPL mode.')
-@click.option('-f', type=str, help='Use file instead of stdin')
-def main(model, model_set_to_gpt4, repl, f, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user):
-    if model_set_to_gpt4:
-        model='gpt-4'
-    if repl and f:
-        raise Exception("Cannot enable both repl mode and use a file input yet")
-    if repl and not f:
-        conversation_history = []
-        while True:
-            content = input("> ")
-            if content.lower() == "exit":
-                return
-            assistant_response = gpt(content, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, conversation_history)
-            conversation_history.append({"role": "user", "content": content})
-            conversation_history.append({"role": "assistant", "content": assistant_response})
-            print(assistant_response)
-    elif not repl and f:
-        with open(f) as fp:
-            message = fp.read()
-    elif not repl and not f:
-        message = sys.stdin.read()
-    else:
-        raise Exception(f"Unreachable code exception {repl} {f}")
+@click.option('--top-p', type=float, default=1.0, help='Sets nucleus sampling parameter.')
+@click.option('--stream', type=bool, default=False, help='Stream partial message deltas.')
+@click.option('--stop', type=str, default=None, help='Up to 4 sequences where API stops generating tokens.')
+@click.option('--max-completion-tokens', type=int, default=None, help='Maximum tokens to generate.')
+@click.option('--reasoning-effort', type=click.Choice(['minimal', 'low', 'medium', 'high'], case_sensitive=False),
+              default='medium', help='Reasoning effort for GPT-5 models (default: medium).')
+@click.option('--verbosity', type=click.Choice(['low', 'medium', 'high'], case_sensitive=False),
+              default='medium', help='Output verbosity for GPT-5 models (default: medium).')
+@click.option('--repl', is_flag=True, help='Enable REPL mode for conversations.')
+@click.option('-f', type=str, help='Use file instead of stdin.')
+def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano,
+         repl, f, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity):
+    """
+    GPT command-line interface - a simple text filter for GPT models.
 
-    print(gpt(message, model, n, temperature, top_p, stream, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, user, []))
+    Reads prompt from stdin (or file with -f), sends to GPT API, outputs to stdout.
+    """
+    # Handle model shortcuts
+    if model_set_to_gpt4:
+        model = 'gpt-4'
+    elif model_set_to_mini:
+        model = 'gpt-5-mini'
+    elif model_set_to_nano:
+        model = 'gpt-5-nano'
+    # -5 flag or default keeps model='gpt-5'
+
+    if repl and f:
+        raise click.UsageError("Cannot enable both REPL mode and file input")
+
+    if repl:
+        # REPL mode - interactive conversation
+        conversation_history = []
+        click.echo(f"GPT REPL Mode (model: {model}). Type 'exit' to quit.")
+        while True:
+            try:
+                content = input("> ")
+            except (EOFError, KeyboardInterrupt):
+                click.echo("\nExiting...")
+                return
+
+            if content.lower() in ["exit", "quit"]:
+                return
+
+            try:
+                assistant_response = gpt(
+                    content, model, temperature, top_p, stream, stop,
+                    max_completion_tokens, reasoning_effort, verbosity, conversation_history
+                )
+                conversation_history.append({"role": "user", "content": content})
+                conversation_history.append({"role": "assistant", "content": assistant_response})
+                click.echo(assistant_response)
+            except Exception as e:
+                click.echo(f"Error: {e}", err=True)
+    else:
+        # Standard filter mode - text in, text out
+        if f:
+            with open(f) as fp:
+                message = fp.read()
+        else:
+            message = sys.stdin.read()
+
+        try:
+            output = gpt(
+                message, model, temperature, top_p, stream, stop,
+                max_completion_tokens, reasoning_effort, verbosity, []
+            )
+            print(output)
+        except Exception as e:
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
 
 
 if __name__ == "__main__":
-    openai.organization = os.getenv("OPENAI_ORGANIZATION")
-    openai.api_key = os.getenv("OPENAI_API_KEY")
     main()  # pylint: disable=no-value-for-parameter

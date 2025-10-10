@@ -10,7 +10,7 @@ def main():
     except KeyError:
         # Fallback to gpt-4 encoding if gpt-5 not available yet
         enc = tiktoken.encoding_for_model("gpt-4")
-    print(len(enc.encode(s)))
+    print(enc.encode(s))
 
 if __name__ == "__main__":
     main()
