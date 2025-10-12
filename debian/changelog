@@ -1,3 +1,13 @@
+gpt-toolkit (2.0.3-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Fix Debian package build failure
+  * Move man/ directory into src/ for proper packaging
+  * Update Makefile to use correct man page path
+  * All features from 2.0.2 included
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Sun, 12 Oct 2025 11:10:00 -0400
+
 gpt-toolkit (2.0.2-1) jammy; urgency=medium
 
   [Tyler Adams]
