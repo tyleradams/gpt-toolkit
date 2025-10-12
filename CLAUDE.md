@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-gpt-toolkit (v2.0.1) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
+gpt-toolkit (v2.0.2) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
 
-**Current Version**: 2.0.1 (see VERSION file)
+**Current Version**: 2.0.2 (see VERSION file)
 
 ## Environment Setup
 

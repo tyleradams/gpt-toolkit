@@ -1,3 +1,14 @@
+gpt-toolkit (2.0.2-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Automatic dependency installation via apt
+  * Add postinst script to install Python packages
+  * Declare Python 3.6+, pip, and click as dependencies
+  * Update README to emphasize zero-config apt installation
+  * Change architecture from 'any' to 'all' (pure Python)
+  * Improve package description
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Sun, 12 Oct 2025 10:00:00 -0400
 gpt-toolkit (2.0.1-1) jammy; urgency=medium
 
   [Tyler Adams]

@@ -1,29 +1,31 @@
 # GPT Command-Line Toolkit
 
-**Version 2.0.1**
+**Version 2.0.2**
 
 A Unix-style command-line interface for OpenAI's GPT models (GPT-4, GPT-5). Designed for pipe-based workflows and text filtering.
 
-## Requirements
-
-1. Linux
-2. Python 3.6 and above
-
 ## Installation
 
-### From APT
+### From APT (Recommended)
+
+Everything is automatically installed, including Python and all dependencies:
+
 ```bash
 $ sudo add-apt-repository ppa:code-faster/ppa
 $ sudo apt update
 $ sudo apt install gpt-toolkit
 ```
 
+That's it! No additional setup needed.
+
 ### From Source
-Make sure you have python3 and the misc-toolkit installed:
+
+For development or if you want to install from source:
+
 ```bash
 $ sudo add-apt-repository ppa:code-faster/ppa
 $ sudo apt update
-$ sudo apt install misc-toolkit
+$ sudo apt install misc-toolkit python3 python3-pip
 $ git clone git@github.com:tyleradams/gpt-toolkit.git
 $ cd gpt-toolkit
 $ make dependencies

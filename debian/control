@@ -10,6 +10,15 @@ Vcs-Git: https://github.com/tyleradams/gpt-toolkit.git
 Rules-Requires-Root: no
 
 Package: gpt-toolkit
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Example repo to demonstrate publishing to apt
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3 (>= 3.6), python3-pip, python3-click
+Description: Command-line interface for OpenAI GPT models
+ gpt-toolkit provides Unix-style command-line tools for OpenAI's GPT models
+ (GPT-4, GPT-5). It's designed for pipe-based workflows and text filtering.
+ .
+ Features include:
+  - GPT-5 support with reasoning controls
+  - Simple stdin/stdout interface
+  - REPL mode for conversations
+  - Token counting utilities
+  - Code extraction from GPT output
