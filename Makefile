@@ -3,7 +3,7 @@ args = $(foreach a,$($(subst -,_,$1)_args),$(if $(value $a),$a="$($a)"))
 # Only install if apt is on system, otherwise do nothing
 # Using oneliner to avoid messing around with makefile if statements
 
-.PHONY: test clean install dependencies all python-dependencies package publish
+.PHONY: test test-unit test-debian clean install dependencies all python-dependencies package publish
 
 dependencies :  python-dependencies
 all :  python-dependencies
@@ -11,8 +11,14 @@ all :  python-dependencies
 python-dependencies : requirements.txt
 	python3 -m pip install -r requirements.txt
 
-test:
+test: test-unit
+	@echo "Run 'make test-debian' to test full Debian package installation (requires Docker)"
+
+test-unit:
 	./tests/test_gpt.py
+
+test-debian:
+	./tests/test_debian_install.sh
 
 clean:
 	rm -rf target

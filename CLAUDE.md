@@ -117,7 +117,11 @@ The package version is managed in debian/changelog. When making changes:
 
 ## Testing
 
-The project includes a test suite in `tests/test_gpt.py`:
+The project includes multiple test suites:
+
+### Unit Tests
+
+Test the CLI functionality (`tests/test_gpt.py`):
 
 ```bash
 # Run all tests
@@ -134,6 +138,22 @@ Tests verify:
 - GPT-5 specific parameters (reasoning-effort, verbosity)
 - Error handling for invalid inputs
 - File input validation
+
+### Integration Tests
+
+Test the full Debian package installation (`tests/test_debian_install.sh`):
+
+```bash
+# Test fresh installation from PPA in Docker (requires Docker)
+./tests/test_debian_install.sh
+```
+
+This test:
+- Creates a clean Ubuntu Jammy container (no cache)
+- Installs from the PPA
+- Verifies all commands work
+- Checks Python dependencies are installed
+- Validates man pages and help
 
 ## Common Use Cases
 
