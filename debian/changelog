@@ -1,3 +1,16 @@
+gpt-toolkit (2.0.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * Major version bump: GPT-5 migration
+  * Migrate to modern OpenAI SDK (>= 1.0.0)
+  * Change default model from gpt-3.5-turbo to gpt-5
+  * Add GPT-5 reasoning controls (--reasoning-effort, --verbosity)
+  * Add model shortcuts (--mini, --nano)
+  * Add comprehensive man page and -h flag
+  * Update documentation with GPT-5 examples
+  * Improve .gitignore patterns
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Fri, 10 Oct 2025 07:30:00 -0400
 gpt-toolkit (1.0.2-1) jammy; urgency=medium
 
   [Tyler Adams]
