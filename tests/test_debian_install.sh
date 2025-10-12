@@ -37,34 +37,161 @@ RUN add-apt-repository -y ppa:code-faster/ppa && \
     apt-get update && \
     apt-get install -y gpt-toolkit
 
-# Verify installation
-RUN which gpt || (echo "ERROR: gpt not found in PATH" && exit 1)
-RUN which gpt-token-length || (echo "ERROR: gpt-token-length not found in PATH" && exit 1)
-RUN which gpt-extract-code || (echo "ERROR: gpt-extract-code not found in PATH" && exit 1)
+# Create a test script that collects all failures
+RUN cat > /tmp/test_all.sh << 'TESTEOF'
+#!/bin/bash
+FAILURES=0
 
-# Test help works
-RUN gpt --help | grep -q "Usage: gpt" || (echo "ERROR: gpt --help failed" && exit 1)
-RUN gpt -h | grep -q "Usage: gpt" || (echo "ERROR: gpt -h failed" && exit 1)
+echo "=== Checking Installed Version ==="
+if gpt --version 2>&1 | head -1; then
+    echo ""
+else
+    echo "✗ Cannot determine version (--version not available)"
+    echo ""
+fi
 
-# Test man page is installed
-RUN man gpt > /dev/null 2>&1 || (echo "ERROR: man gpt failed" && exit 1)
+echo "=== Testing Installation ==="
 
-# Verify Python dependencies are installed
-RUN python3 -c "import click; import openai; import tiktoken; import readline" || \
-    (echo "ERROR: Python dependencies not installed correctly" && exit 1)
+# Test 1: gpt command exists
+if which gpt > /dev/null 2>&1; then
+    echo "✓ gpt found in PATH"
+else
+    echo "✗ ERROR: gpt not found in PATH"
+    FAILURES=$((FAILURES+1))
+fi
 
-# Test that version info is correct
-RUN gpt --help | grep -q "gpt-5" || (echo "ERROR: Default model not gpt-5" && exit 1)
+# Test 2: gpt-token-length exists
+if which gpt-token-length > /dev/null 2>&1; then
+    echo "✓ gpt-token-length found in PATH"
+else
+    echo "✗ ERROR: gpt-token-length not found in PATH"
+    FAILURES=$((FAILURES+1))
+fi
 
-# Test token counter
-RUN echo "Hello world" | gpt-token-length | grep -qE '^[0-9]+$' || \
-    (echo "ERROR: gpt-token-length failed" && exit 1)
+# Test 3: gpt-extract-code exists
+if which gpt-extract-code > /dev/null 2>&1; then
+    echo "✓ gpt-extract-code found in PATH"
+else
+    echo "✗ ERROR: gpt-extract-code not found in PATH"
+    FAILURES=$((FAILURES+1))
+fi
 
-# Test code extractor
-RUN echo '```\nprint("hello")\n```' | gpt-extract-code | grep -q 'print("hello")' || \
-    (echo "ERROR: gpt-extract-code failed" && exit 1)
+# Test 4: gpt-to-substack exists
+if which gpt-to-substack > /dev/null 2>&1; then
+    echo "✓ gpt-to-substack found in PATH"
+else
+    echo "✗ ERROR: gpt-to-substack not found in PATH"
+    FAILURES=$((FAILURES+1))
+fi
 
-CMD echo "✓ All installation tests passed!"
+echo ""
+echo "=== Testing Help ==="
+
+# Test 5: gpt --help
+if gpt --help 2>&1 | grep -q "Usage: gpt"; then
+    echo "✓ gpt --help works"
+else
+    echo "✗ ERROR: gpt --help failed"
+    FAILURES=$((FAILURES+1))
+fi
+
+# Test 6: gpt -h
+if gpt -h 2>&1 | grep -q "Usage: gpt"; then
+    echo "✓ gpt -h works"
+else
+    echo "✗ ERROR: gpt -h failed"
+    FAILURES=$((FAILURES+1))
+fi
+
+echo ""
+echo "=== Testing Man Pages ==="
+
+# Test 7: man page installed
+if man gpt > /dev/null 2>&1; then
+    echo "✓ man gpt works"
+else
+    echo "✗ ERROR: man gpt failed"
+    FAILURES=$((FAILURES+1))
+fi
+
+echo ""
+echo "=== Testing Python Dependencies ==="
+
+# Test 8: click
+if python3 -c "import click" 2>&1; then
+    echo "✓ python3-click installed"
+else
+    echo "✗ ERROR: python3-click not installed"
+    FAILURES=$((FAILURES+1))
+fi
+
+# Test 9: openai
+if python3 -c "import openai" 2>&1; then
+    echo "✓ python3-openai installed"
+else
+    echo "✗ ERROR: python3-openai not installed"
+    FAILURES=$((FAILURES+1))
+fi
+
+# Test 10: tiktoken
+if python3 -c "import tiktoken" 2>&1; then
+    echo "✓ python3-tiktoken installed"
+else
+    echo "✗ ERROR: python3-tiktoken not installed"
+    FAILURES=$((FAILURES+1))
+fi
+
+# Test 11: readline
+if python3 -c "import readline" 2>&1; then
+    echo "✓ python3-readline installed"
+else
+    echo "✗ ERROR: python3-readline not installed"
+    FAILURES=$((FAILURES+1))
+fi
+
+echo ""
+echo "=== Testing Functionality ==="
+
+# Test 12: Default model is gpt-5
+if gpt --help 2>&1 | grep -q "gpt-5"; then
+    echo "✓ Default model is gpt-5"
+else
+    echo "✗ ERROR: Default model not gpt-5"
+    FAILURES=$((FAILURES+1))
+fi
+
+# Test 13: Token counter works
+if echo "Hello world" | gpt-token-length 2>&1 | grep -qE '^[0-9]+$'; then
+    echo "✓ gpt-token-length works"
+else
+    echo "✗ ERROR: gpt-token-length failed"
+    FAILURES=$((FAILURES+1))
+fi
+
+# Test 14: Code extractor works
+if echo '```
+print("hello")
+```' | gpt-extract-code 2>&1 | grep -q 'print("hello")'; then
+    echo "✓ gpt-extract-code works"
+else
+    echo "✗ ERROR: gpt-extract-code failed"
+    FAILURES=$((FAILURES+1))
+fi
+
+echo ""
+echo "========================================"
+if [ $FAILURES -eq 0 ]; then
+    echo "✓ All 14 tests passed!"
+    exit 0
+else
+    echo "✗ $FAILURES test(s) failed"
+    exit 1
+fi
+TESTEOF
+
+RUN chmod +x /tmp/test_all.sh
+
+CMD /tmp/test_all.sh
 EOF
 
 echo "Building test Docker image (no cache)..."
