@@ -73,7 +73,9 @@ echo "============================================================"
 echo "Step 4: Installing Locally"
 echo "============================================================"
 echo "Installing to /usr/local..."
-cd src && sudo make install prefix=/usr/local && cd ..
+echo "Running: sudo make install"
+echo "You may need to enter your password..."
+sudo make install
 echo "✓ Installed locally"
 echo
 
