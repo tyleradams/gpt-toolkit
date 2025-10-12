@@ -25,5 +25,5 @@ package:
 	(cd target/gpt-toolkit-${version}; debuild -S -us -uc;)
 
 publish:
-	debsign -k 5DB475563E94EEAC666956FD31CA7EECE167B1C8 ./target/gpt-toolkit_${version}_source.changes
-	dput -f code-faster ./target/gpt-toolkit_${version}_source.changes
+	debsign -k 5DB475563E94EEAC666956FD31CA7EECE167B1C8 ./target/gpt-toolkit_${version}-1_source.changes
+	dput -f code-faster ./target/gpt-toolkit_${version}-1_source.changes
