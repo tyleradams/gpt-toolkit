@@ -40,7 +40,7 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
 
 
 @click.command(context_settings={"ignore_unknown_options": True, "allow_extra_args": True, "help_option_names": ['-h', '--help']})
-@click.version_option(version='2.0.3', prog_name='gpt-toolkit')
+@click.version_option(version='2.0.4', prog_name='gpt-toolkit')
 @click.option('-m', '--model', default='gpt-5', help='Specifies the AI model to use (default: gpt-5).')
 @click.option('-5', 'model_set_to_gpt5', is_flag=True, help='Sets the model to gpt-5 (default)')
 @click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4')

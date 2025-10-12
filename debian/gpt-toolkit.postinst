@@ -5,7 +5,7 @@ case "$1" in
     configure)
         # Install Python dependencies that aren't available as Debian packages
         # Install to /usr/local to avoid conflicts with dpkg
-        pip3 install --no-warn-script-location openai>=1.0.0 tiktoken>=0.4.0 readline>=6.2.4.1 || true
+        pip3 install --no-warn-script-location openai>=1.0.0 tiktoken>=0.4.0 || true
         ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
