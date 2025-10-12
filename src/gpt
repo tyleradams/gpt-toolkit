@@ -6,17 +6,39 @@ from openai import OpenAI
 import sys
 import readline
 
-def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history):
+def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, pdf_files=None):
     """Make a GPT API call with the modern OpenAI SDK."""
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
         organization=os.getenv("OPENAI_ORGANIZATION")
     )
 
+    # Handle PDF file uploads if provided
+    file_ids = []
+    if pdf_files:
+        for pdf_path in pdf_files:
+            with open(pdf_path, "rb") as pdf_file:
+                uploaded_file = client.files.create(
+                    file=pdf_file,
+                    purpose="user_data"
+                )
+                file_ids.append(uploaded_file.id)
+
+    # Build message content
+    if file_ids:
+        # If PDFs are attached, content must be a list of content parts
+        message_content = []
+        for file_id in file_ids:
+            message_content.append({"type": "file", "file": {"file_id": file_id}})
+        message_content.append({"type": "text", "text": content})
+    else:
+        # Standard text-only content
+        message_content = content
+
     # Build the API parameters
     params = {
         "model": model,
-        "messages": [*conversation_history, {"role": "user", "content": content}],
+        "messages": [*conversation_history, {"role": "user", "content": message_content}],
         "temperature": temperature,
         "top_p": top_p,
         "stream": stream,
@@ -40,7 +62,7 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
 
 
 @click.command(context_settings={"ignore_unknown_options": True, "allow_extra_args": True, "help_option_names": ['-h', '--help']})
-@click.version_option(version='2.0.4', prog_name='gpt-toolkit')
+@click.version_option(version='2.0.5', prog_name='gpt-toolkit')
 @click.option('-m', '--model', default='gpt-5', help='Specifies the AI model to use (default: gpt-5).')
 @click.option('-5', 'model_set_to_gpt5', is_flag=True, help='Sets the model to gpt-5 (default)')
 @click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4')
@@ -57,12 +79,15 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
               default='medium', help='Output verbosity for GPT-5 models (default: medium).')
 @click.option('--repl', is_flag=True, help='Enable REPL mode for conversations.')
 @click.option('-f', type=str, help='Use file instead of stdin.')
+@click.option('--pdf', multiple=True, type=click.Path(exists=True), help='Attach PDF file(s) to the prompt. Can be used multiple times.')
 def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano,
-         repl, f, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity):
+         repl, f, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, pdf):
     """
     GPT command-line interface - a simple text filter for GPT models.
 
     Reads prompt from stdin (or file with -f), sends to GPT API, outputs to stdout.
+
+    PDF files can be attached using --pdf flag (requires vision-capable models like gpt-4o).
     """
     # Handle model shortcuts
     if model_set_to_gpt4:
@@ -75,6 +100,12 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
 
     if repl and f:
         raise click.UsageError("Cannot enable both REPL mode and file input")
+
+    if repl and pdf:
+        raise click.UsageError("PDF attachments not supported in REPL mode")
+
+    # Convert pdf tuple to list
+    pdf_files = list(pdf) if pdf else None
 
     if repl:
         # REPL mode - interactive conversation
@@ -111,7 +142,7 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
         try:
             output = gpt(
                 message, model, temperature, top_p, stream, stop,
-                max_completion_tokens, reasoning_effort, verbosity, []
+                max_completion_tokens, reasoning_effort, verbosity, [], pdf_files
             )
             print(output)
         except Exception as e:
