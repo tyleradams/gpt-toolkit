@@ -3,6 +3,8 @@ args = $(foreach a,$($(subst -,_,$1)_args),$(if $(value $a),$a="$($a)"))
 # Only install if apt is on system, otherwise do nothing
 # Using oneliner to avoid messing around with makefile if statements
 
+.PHONY: test clean install dependencies all python-dependencies package publish
+
 dependencies :  python-dependencies
 all :  python-dependencies
 
