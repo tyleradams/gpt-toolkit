@@ -9,6 +9,9 @@ all :  python-dependencies
 python-dependencies : requirements.txt
 	python3 -m pip install -r requirements.txt
 
+test:
+	./tests/test_gpt.py
+
 clean:
 	rm -rf target
 install :

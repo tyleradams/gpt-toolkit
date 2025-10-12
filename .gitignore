@@ -16,3 +16,4 @@ __pycache__/
 venv/
 test
 gpt-docs
+tests/__pycache__/

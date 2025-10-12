@@ -1,6 +1,6 @@
 # GPT Command-Line Toolkit
 
-**Version 2.0.0**
+**Version 2.0.1**
 
 A Unix-style command-line interface for OpenAI's GPT models (GPT-4, GPT-5). Designed for pipe-based workflows and text filtering.
 
