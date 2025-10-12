@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-gpt-toolkit (v2.0.2) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
+gpt-toolkit (v2.0.4) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
 
-**Current Version**: 2.0.2 (see VERSION file)
+**Current Version**: 2.0.4 (see VERSION file)
 
 ## Environment Setup
 
@@ -117,18 +117,16 @@ The package version is managed in debian/changelog. When making changes:
 
 ## Testing
 
-The project includes multiple test suites:
+The project includes three levels of testing:
 
-### Unit Tests
+### 1. Unit Tests
 
 Test the CLI functionality (`tests/test_gpt.py`):
 
 ```bash
-# Run all tests
+# Run unit tests
 make test
-
-# Or run directly
-./tests/test_gpt.py
+# Or: ./tests/test_gpt.py
 ```
 
 Tests verify:
@@ -139,21 +137,54 @@ Tests verify:
 - Error handling for invalid inputs
 - File input validation
 
-### Integration Tests
+### 2. Local Pre-Publish Tests
 
-Test the full Debian package installation (`tests/test_debian_install.sh`):
+**IMPORTANT**: Always run this BEFORE publishing to Launchpad PPA.
+
+Test that the package builds and installs correctly (`tests/test_local_build.sh`):
 
 ```bash
-# Test fresh installation from PPA in Docker (requires Docker)
-./tests/test_debian_install.sh
+# Build package first
+make package version=X.Y.Z
+
+# Test locally (builds binary .deb in clean Docker)
+make test-local
+```
+
+This test:
+- Builds binary .deb in clean Ubuntu Jammy Docker container
+- Installs the .deb with all dependencies
+- Runs all 14 integration tests
+- **Takes ~2-5 minutes** (much faster than waiting 30min for Launchpad)
+- Catches build/install issues before publishing
+
+**Publishing Workflow**:
+1. `make package version=X.Y.Z` - Build source package
+2. `make test-local` - Test locally (catches issues immediately)
+3. `make publish version=X.Y.Z` - Publish to Launchpad (only if test passes)
+4. Wait ~30 minutes for Launchpad to build
+5. `make test-debian` - Final verification from PPA
+
+### 3. PPA Integration Tests
+
+Test the published package from the PPA (`tests/test_debian_install.sh`):
+
+```bash
+# Test installation from code-faster PPA in Docker (requires Docker)
+make test-debian
+# Or: ./tests/test_debian_install.sh
 ```
 
 This test:
 - Creates a clean Ubuntu Jammy container (no cache)
-- Installs from the PPA
-- Verifies all commands work
-- Checks Python dependencies are installed
-- Validates man pages and help
+- Adds the PPA and installs gpt-toolkit
+- Runs 14 comprehensive checks:
+  - Version identification
+  - All utilities in PATH (gpt, gpt-token-length, etc.)
+  - Help flags work
+  - Man pages installed
+  - Python dependencies (click, openai, tiktoken, readline)
+  - Functionality tests (default model, token counting, code extraction)
 
 ## Common Use Cases
 
