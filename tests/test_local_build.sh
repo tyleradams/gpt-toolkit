@@ -9,18 +9,19 @@ echo "Local Pre-Publish Test - gpt-toolkit"
 echo "============================================================"
 echo
 
-# Get the current version from git
-VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "unknown")
-echo "Testing version: $VERSION"
-echo
+# Find the most recent .dsc file in target/
+DSC_FILE=$(ls -t target/*.dsc 2>/dev/null | head -1)
 
-# Check if the .dsc file exists
-DSC_FILE="target/gpt-toolkit_${VERSION}-1.dsc"
-if [ ! -f "$DSC_FILE" ]; then
-    echo "ERROR: Source package not found at $DSC_FILE"
-    echo "Run 'make package version=$VERSION' first"
+if [ -z "$DSC_FILE" ]; then
+    echo "ERROR: No .dsc file found in target/"
+    echo "Run 'make package version=X.Y.Z' first"
     exit 1
 fi
+
+# Extract version from .dsc filename
+VERSION=$(basename "$DSC_FILE" | sed 's/gpt-toolkit_\(.*\)-1\.dsc/\1/')
+echo "Testing version: $VERSION"
+echo
 
 echo "Found source package: $DSC_FILE"
 echo
