@@ -1,3 +1,14 @@
+gpt-toolkit (3.0.0-1) jammy; urgency=medium
+
+  [Tyler Adams]
+  * BREAKING: Simplified to single gpt executable
+  * Remove gpt-extract-code, gpt-to-substack, gpt-token-length utilities
+  * Add --tokens flag to gpt for token counting (outputs JSON)
+  * JSON output includes token_count, token_ids, and model
+  * Major version bump due to removed commands
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Sun, 12 Oct 2025 14:00:00 -0400
+
 gpt-toolkit (2.0.5-1) jammy; urgency=medium
 
   [Tyler Adams]

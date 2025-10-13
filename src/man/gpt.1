@@ -1,4 +1,4 @@
-.TH GPT 1 "2025-10-12" "gpt-toolkit 2.0.2" "User Commands"
+.TH GPT 1 "2025-10-12" "gpt-toolkit 3.0.0" "User Commands"
 .SH NAME
 gpt \- command-line interface for OpenAI GPT models
 .SH SYNOPSIS
@@ -56,6 +56,12 @@ Read prompt from FILE instead of stdin
 .TP
 .BR \-\-repl
 Enable REPL mode for interactive conversations. Type 'exit' or 'quit' to exit.
+.TP
+.BR \-\-tokens
+Count tokens in input text without making an API call. Outputs JSON with token_count, token_ids, and model.
+.TP
+.BR \-\-pdf " \fIFILE\fR"
+Attach PDF file(s) to the prompt. Can be used multiple times. Requires vision-capable model (e.g., gpt-4o).
 .TP
 .BR \-h ", " \-\-help
 Show help message and exit
@@ -128,10 +134,17 @@ Combine prompt with file content:
 .RE
 .fi
 .PP
-Extract and save code:
+Count tokens in text:
 .nf
 .RS
-echo "Write a Python hello world" | gpt | gpt-extract-code > hello.py
+echo "How many tokens in this text?" | gpt --tokens
+.RE
+.fi
+.PP
+Attach PDF for analysis:
+.nf
+.RS
+echo "Summarize this research paper" | gpt --pdf paper.pdf -m gpt-4o
 .RE
 .fi
 .PP
@@ -174,10 +187,6 @@ for mostly deterministic outputs.
 .PP
 This tool requires an active internet connection and valid OpenAI API credentials.
 .SH SEE ALSO
-.BR gpt-extract-code (1),
-.BR gpt-to-substack (1),
-.BR gpt-token-length (1)
-.PP
 OpenAI API documentation: https://platform.openai.com/docs
 .PP
 Project homepage: https://github.com/tyleradams/gpt-toolkit

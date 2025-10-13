@@ -16,10 +16,12 @@ echo "Explain quantum computing in one sentence" | gpt
 
 - **True Unix philosophy**: Pipes, stdin/stdout, composable with other tools
 - **Zero config on Ubuntu**: `apt-get install gpt-toolkit` and you're done
+- **Single executable**: Everything in one command - `gpt`
 - **GPT-5 by default** with reasoning controls (--reasoning-effort, --verbosity)
 - **PDF support**: Attach PDFs directly (`--pdf document.pdf`)
+- **Token counting**: Built-in with `--tokens` flag (outputs JSON)
 - **REPL mode** for conversations
-- **Maintained & tested**: Automated release pipeline, 14 integration tests
+- **Maintained & tested**: Automated release pipeline, comprehensive integration tests
 
 ## Installation
 
@@ -52,8 +54,8 @@ echo "Hard math problem..." | gpt --reasoning-effort high
 # PDF analysis
 echo "Summarize this research paper" | gpt --pdf paper.pdf -m gpt-4o
 
-# Extract code from responses
-echo "Write a Python hello world" | gpt | gpt-extract-code > hello.py
+# Token counting (v3.0+)
+echo "Count tokens in this text" | gpt --tokens
 
 # REPL mode
 gpt --repl

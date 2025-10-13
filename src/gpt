@@ -5,6 +5,8 @@ import click
 from openai import OpenAI
 import sys
 import readline
+import tiktoken
+import json
 
 def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, pdf_files=None):
     """Make a GPT API call with the modern OpenAI SDK."""
@@ -61,8 +63,36 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
     return response.choices[0].message.content
 
 
+def count_tokens(text, model):
+    """Count tokens in text using tiktoken."""
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Fallback to gpt-4 encoding if model not recognized
+        enc = tiktoken.encoding_for_model("gpt-4")
+
+    tokens = enc.encode(text)
+    return len(tokens), tokens
+
+
+def get_version():
+    """Get version from git describe, fallback to 'unknown'."""
+    import subprocess
+    try:
+        version = subprocess.check_output(
+            ['git', 'describe', '--tags', '--always'],
+            stderr=subprocess.DEVNULL,
+            text=True
+        ).strip()
+        # Remove leading 'v' if present
+        if version.startswith('v'):
+            version = version[1:]
+        return version
+    except:
+        return 'unknown'
+
 @click.command(context_settings={"ignore_unknown_options": True, "allow_extra_args": True, "help_option_names": ['-h', '--help']})
-@click.version_option(version='2.0.5', prog_name='gpt-toolkit')
+@click.version_option(version=get_version(), prog_name='gpt-toolkit')
 @click.option('-m', '--model', default='gpt-5', help='Specifies the AI model to use (default: gpt-5).')
 @click.option('-5', 'model_set_to_gpt5', is_flag=True, help='Sets the model to gpt-5 (default)')
 @click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4')
@@ -80,14 +110,19 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
 @click.option('--repl', is_flag=True, help='Enable REPL mode for conversations.')
 @click.option('-f', type=str, help='Use file instead of stdin.')
 @click.option('--pdf', multiple=True, type=click.Path(exists=True), help='Attach PDF file(s) to the prompt. Can be used multiple times.')
+@click.option('--tokens', is_flag=True, help='Count tokens in input instead of calling API. Outputs JSON with count and token IDs.')
 def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano,
-         repl, f, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, pdf):
+         repl, f, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, pdf, tokens):
     """
     GPT command-line interface - a simple text filter for GPT models.
 
     Reads prompt from stdin (or file with -f), sends to GPT API, outputs to stdout.
 
-    PDF files can be attached using --pdf flag (requires vision-capable models like gpt-4o).
+    Features:
+    - PDF attachment support (--pdf)
+    - Token counting (--tokens)
+    - REPL mode (--repl)
+    - GPT-5 reasoning controls
     """
     # Handle model shortcuts
     if model_set_to_gpt4:
@@ -97,6 +132,32 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     elif model_set_to_nano:
         model = 'gpt-5-nano'
     # -5 flag or default keeps model='gpt-5'
+
+    # Token counting mode
+    if tokens:
+        if repl:
+            raise click.UsageError("Cannot use --tokens with --repl mode")
+        if pdf:
+            raise click.UsageError("Cannot use --tokens with --pdf (tokens are for text only)")
+
+        # Read input
+        if f:
+            with open(f) as fp:
+                text = fp.read()
+        else:
+            text = sys.stdin.read()
+
+        # Count tokens
+        count, token_ids = count_tokens(text, model)
+
+        # Output as JSON
+        result = {
+            "token_count": count,
+            "token_ids": token_ids,
+            "model": model
+        }
+        print(json.dumps(result, indent=2))
+        return
 
     if repl and f:
         raise click.UsageError("Cannot enable both REPL mode and file input")

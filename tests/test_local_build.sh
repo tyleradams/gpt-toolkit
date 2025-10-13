@@ -9,8 +9,8 @@ echo "Local Pre-Publish Test - gpt-toolkit"
 echo "============================================================"
 echo
 
-# Get the current version
-VERSION=$(cat VERSION 2>/dev/null || echo "unknown")
+# Get the current version from git
+VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "unknown")
 echo "Testing version: $VERSION"
 echo
 
@@ -27,7 +27,7 @@ echo
 
 # Create a Dockerfile for local build testing
 cat > /tmp/gpt-toolkit-local-test.dockerfile << 'EOF'
-FROM ubuntu:jammy
+FROM ubuntu:noble
 
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -77,28 +77,12 @@ else
     FAILURES=$((FAILURES+1))
 fi
 
-# Test 2: gpt-token-length exists
-if which gpt-token-length > /dev/null 2>&1; then
-    echo "✓ gpt-token-length found in PATH"
-else
-    echo "✗ ERROR: gpt-token-length not found in PATH"
+# Test 2: Old utilities should NOT exist (v3.0 removed them)
+if which gpt-token-length > /dev/null 2>&1 || which gpt-extract-code > /dev/null 2>&1 || which gpt-to-substack > /dev/null 2>&1; then
+    echo "✗ ERROR: Old utilities still present (should be removed in v3.0)"
     FAILURES=$((FAILURES+1))
-fi
-
-# Test 3: gpt-extract-code exists
-if which gpt-extract-code > /dev/null 2>&1; then
-    echo "✓ gpt-extract-code found in PATH"
 else
-    echo "✗ ERROR: gpt-extract-code not found in PATH"
-    FAILURES=$((FAILURES+1))
-fi
-
-# Test 4: gpt-to-substack exists
-if which gpt-to-substack > /dev/null 2>&1; then
-    echo "✓ gpt-to-substack found in PATH"
-else
-    echo "✗ ERROR: gpt-to-substack not found in PATH"
-    FAILURES=$((FAILURES+1))
+    echo "✓ Old utilities correctly removed (v3.0)"
 fi
 
 echo ""
@@ -177,28 +161,26 @@ else
     FAILURES=$((FAILURES+1))
 fi
 
-# Test 13: Token counter works
-if echo "Hello world" | gpt-token-length 2>&1 | grep -qE '^[0-9]+$'; then
-    echo "✓ gpt-token-length works"
+# Test 13: Token counter works (--tokens flag)
+if echo "Hello world" | gpt --tokens 2>&1 | grep -q '"token_count"'; then
+    echo "✓ gpt --tokens works"
 else
-    echo "✗ ERROR: gpt-token-length failed"
+    echo "✗ ERROR: gpt --tokens failed"
     FAILURES=$((FAILURES+1))
 fi
 
-# Test 14: Code extractor works
-if echo '```
-print("hello")
-```' | gpt-extract-code 2>&1 | grep -q 'print("hello")'; then
-    echo "✓ gpt-extract-code works"
+# Test 14: --tokens outputs valid JSON
+if echo "test" | gpt --tokens 2>&1 | python3 -c "import json, sys; json.load(sys.stdin)" > /dev/null 2>&1; then
+    echo "✓ gpt --tokens outputs valid JSON"
 else
-    echo "✗ ERROR: gpt-extract-code failed"
+    echo "✗ ERROR: gpt --tokens JSON invalid"
     FAILURES=$((FAILURES+1))
 fi
 
 echo ""
 echo "========================================"
 if [ $FAILURES -eq 0 ]; then
-    echo "✓ All 14 tests passed!"
+    echo "✓ All 12 tests passed!"
     exit 0
 else
     echo "✗ $FAILURES test(s) failed"

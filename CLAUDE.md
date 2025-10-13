@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-gpt-toolkit (v2.0.4) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
+gpt-toolkit (v3.0.0) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
 
-**Current Version**: 2.0.4 (see VERSION file)
+**Current Version**: 3.0.0 (see VERSION file)
+
+**Version 3.0 Changes**: Simplified to a single `gpt` executable with all functionality built-in. Token counting is now available via `--tokens` flag. The utilities gpt-extract-code, gpt-to-substack, gpt-token-length, and gpt-tokens have been removed.
 
 ## Environment Setup
 
@@ -36,7 +38,7 @@ make publish version=<version>
 
 ## Core Commands
 
-The toolkit provides four main executables (all in `src/`):
+The toolkit provides a single executable: `gpt` (in `src/`).
 
 ### gpt
 The primary GPT interface. Takes input via stdin or file, outputs to stdout.
@@ -58,6 +60,12 @@ gpt -f prompt.txt
 
 # REPL mode for conversations
 gpt --repl
+
+# Token counting (no API call, outputs JSON)
+echo "text" | gpt --tokens
+
+# PDF attachment (requires vision-capable model)
+echo "Summarize this document" | gpt --pdf file.pdf -m gpt-4o
 ```
 
 **GPT-5 specific flags:**
@@ -70,18 +78,8 @@ gpt --repl
 - `--top-p` - Nucleus sampling parameter
 - `--stop` - Stop sequences
 - `-m, --model` - Specify model explicitly
-
-### gpt-extract-code
-Extracts code from markdown code blocks (strips ```). Used to parse GPT output containing code.
-
-### gpt-to-substack
-Transforms GPT output for Substack editor. Generates xte keyboard commands to type formatted text (including bold/italics via Ctrl+b/Ctrl+i).
-
-### gpt-token-length
-Counts tokens in stdin using tiktoken for GPT-5/GPT-4 encoding.
-
-### gpt-tokens
-Prints token IDs for stdin using tiktoken.
+- `--tokens` - Count tokens in input (outputs JSON with token_count, token_ids, and model)
+- `--pdf FILE` - Attach PDF file(s) to prompt (can be used multiple times)
 
 ## Architecture
 
@@ -178,13 +176,13 @@ make test-debian
 This test:
 - Creates a clean Ubuntu Jammy container (no cache)
 - Adds the PPA and installs gpt-toolkit
-- Runs 14 comprehensive checks:
+- Runs comprehensive checks:
   - Version identification
-  - All utilities in PATH (gpt, gpt-token-length, etc.)
+  - gpt command in PATH
   - Help flags work
   - Man pages installed
   - Python dependencies (click, openai, tiktoken, readline)
-  - Functionality tests (default model, token counting, code extraction)
+  - Functionality tests (default model, token counting, PDF support)
 
 ## Common Use Cases
 
@@ -212,8 +210,8 @@ wait
 #!/usr/bin/env -S gpt -m gpt-5 -f
 Print out 1 to 10
 
-# Extract code from GPT output
-echo "Write a Python hello world" | gpt | gpt-extract-code > hello.py
+# Token counting
+echo "How many tokens?" | gpt --tokens
 ```
 
 ## Dependencies

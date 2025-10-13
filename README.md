@@ -1,8 +1,10 @@
 # GPT Command-Line Toolkit
 
-**Version 2.0.2**
+**Version 3.0.0**
 
 A Unix-style command-line interface for OpenAI's GPT models (GPT-4, GPT-5). Designed for pipe-based workflows and text filtering.
+
+**New in 3.0**: Simplified to a single `gpt` executable with all functionality built-in.
 
 ## Installation
 
@@ -119,8 +121,8 @@ $ for f in $(cat files.txt); do
   done
   wait
 
-# Extract code from GPT response
-$ echo "Write a Python hello world" | gpt | gpt-extract-code > hello.py
+# Attach PDFs for analysis
+$ echo "Summarize this research paper" | gpt --pdf paper.pdf -m gpt-4o
 
 # Use as shebang
 $ cat > script.gpt << 'EOF'
@@ -131,29 +133,23 @@ $ chmod +x script.gpt
 $ ./script.gpt
 ```
 
-### gpt-to-substack
+#### Token Counting
 
-Transform GPT output for Substack editor (generates xte keyboard commands):
-
-```bash
-$ echo "Write a blog post about AI" | gpt | gpt-to-substack | xte
-```
-
-### gpt-extract-code
-
-Extract code blocks from markdown (strips ``` delimiters):
+Count tokens in text without making API calls:
 
 ```bash
-$ echo "Write Python code to sort a list" | gpt | gpt-extract-code > sort.py
-```
+$ echo "Hello world" | gpt --tokens
+{
+  "token_count": 2,
+  "token_ids": [9906, 1917],
+  "model": "gpt-5"
+}
 
-### gpt-token-length
+# Count tokens in a file
+$ gpt --tokens -f document.txt
 
-Count tokens in text:
-
-```bash
-$ echo "Hello world" | gpt-token-length
-2
+# Count with specific model encoding
+$ echo "Test" | gpt --tokens -m gpt-4
 ```
 
 ## Command-Line Options
@@ -180,16 +176,18 @@ $ echo "Hello world" | gpt-token-length
 **Modes:**
 - `--repl` - Interactive conversation mode
 - `-f FILE` - Read prompt from file instead of stdin
+- `--tokens` - Count tokens in input (outputs JSON, no API call)
+- `--pdf FILE` - Attach PDF file(s) to prompt (can be used multiple times)
 
 ## Examples by Use Case
 
 ### Code Generation
 ```bash
-# Generate and save code
-$ echo "Write a Python function to reverse a string" | gpt | gpt-extract-code > reverse.py
+# Generate code
+$ echo "Write a Python function to reverse a string" | gpt
 
 # Generate with high reasoning for complex logic
-$ echo "Implement a binary search tree in Python" | gpt --reasoning-effort high | gpt-extract-code > bst.py
+$ echo "Implement a binary search tree in Python" | gpt --reasoning-effort high
 ```
 
 ### Text Processing
