@@ -11,7 +11,7 @@ Rules-Requires-Root: no
 
 Package: gpt-toolkit
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, python3 (>= 3.6), python3-pip, python3-click
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3 (>= 3.10), python3-click, python3-openai, python3-tiktoken
 Description: Command-line interface for OpenAI GPT models
  gpt-toolkit provides Unix-style command-line tools for OpenAI's GPT models
  (GPT-4, GPT-5). It's designed for pipe-based workflows and text filtering.
