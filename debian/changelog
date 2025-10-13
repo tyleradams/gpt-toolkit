@@ -3,6 +3,13 @@ gpt-toolkit (4.0.0-1) noble; urgency=medium
   [Tyler Adams]
   * Release 4.0.0
 
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Mon, 13 Oct 2025 15:51:35 -0400
+
+gpt-toolkit (4.0.0-1) noble; urgency=medium
+
+  [Tyler Adams]
+  * Release 4.0.0
+
  -- Tyler Adams <tyler@blitzblitzblitz.com>  Mon, 13 Oct 2025 15:19:24 -0400
 
 gpt-toolkit (3.0.0-1) jammy; urgency=medium
