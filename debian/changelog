@@ -1,3 +1,10 @@
+gpt-toolkit (4.1.0-1) noble; urgency=medium
+
+  [Tyler Adams]
+  * Release 4.1.0
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Wed, 15 Oct 2025 22:03:36 -0400
+
 gpt-toolkit (4.0.0-1) noble; urgency=medium
 
   [Tyler Adams]
