@@ -209,18 +209,19 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "Post-Publish Verification (Background)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo
-echo "Starting 30-minute wait for Launchpad build..."
+echo "Starting 90-minute wait for Launchpad build and mirror publication..."
 echo "Verification will run automatically and notify on failure."
+echo "Note: Launchpad typically takes 1-2 hours to build and publish to mirrors."
 echo
 
 # Run post-publish test in background
 (
-    sleep 1800  # Wait 30 minutes for Launchpad build
+    sleep 5400  # Wait 90 minutes for Launchpad build and mirror publication
 
     echo
-    echo "Running post-publish verification..."
+    echo "Running post-publish verification for version $VERSION..."
 
-    if make test-debian 2>&1 | tee /tmp/gpt-toolkit-post-publish-test.log; then
+    if make test-debian version=$VERSION 2>&1 | tee /tmp/gpt-toolkit-post-publish-test.log; then
         echo
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "✓ POST-PUBLISH VERIFICATION PASSED"
@@ -251,5 +252,5 @@ echo
 ) &
 
 echo "Post-publish verification running in background (PID: $!)"
-echo "You can continue working - verification will complete in ~30 minutes"
+echo "You can continue working - verification will complete in ~90 minutes"
 echo

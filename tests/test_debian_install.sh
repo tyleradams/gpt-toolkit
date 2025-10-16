@@ -14,9 +14,9 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Get the current version from git
-VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "unknown")
-echo "Testing version: $VERSION"
+# Get expected version from argument or git
+EXPECTED_VERSION="${1:-$(git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "unknown")}"
+echo "Expected version: $EXPECTED_VERSION"
 echo
 
 # Create a Dockerfile for testing
@@ -41,15 +41,22 @@ RUN add-apt-repository -y ppa:code-faster/ppa && \
 RUN cat > /tmp/test_all.sh << 'TESTEOF'
 #!/bin/bash
 FAILURES=0
+EXPECTED_VERSION="EXPECTED_VERSION_PLACEHOLDER"
 
 echo "=== Checking Installed Version ==="
-if gpt --version 2>&1 | head -1; then
-    echo ""
+INSTALLED_VERSION=$(gpt --version 2>&1 | head -1 | grep -oP 'version \K[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+echo "gpt-toolkit, version $INSTALLED_VERSION"
+echo ""
+
+# Test 0: Version matches expected
+if [ "$INSTALLED_VERSION" = "$EXPECTED_VERSION" ]; then
+    echo "✓ Installed version matches expected ($EXPECTED_VERSION)"
 else
-    echo "✗ Cannot determine version (--version not available)"
-    echo ""
+    echo "✗ ERROR: Version mismatch! Expected $EXPECTED_VERSION, got $INSTALLED_VERSION"
+    FAILURES=$((FAILURES+1))
 fi
 
+echo ""
 echo "=== Testing Installation ==="
 
 # Test 1: gpt command exists
@@ -163,7 +170,7 @@ fi
 echo ""
 echo "========================================"
 if [ $FAILURES -eq 0 ]; then
-    echo "✓ All 12 tests passed!"
+    echo "✓ All 13 tests passed!"
     exit 0
 else
     echo "✗ $FAILURES test(s) failed"
@@ -175,6 +182,9 @@ RUN chmod +x /tmp/test_all.sh
 
 CMD /tmp/test_all.sh
 EOF
+
+# Inject expected version into the dockerfile
+sed -i "s/EXPECTED_VERSION_PLACEHOLDER/$EXPECTED_VERSION/g" /tmp/gpt-toolkit-test.dockerfile
 
 echo "Building test Docker image (no cache)..."
 docker build --no-cache -f /tmp/gpt-toolkit-test.dockerfile -t gpt-toolkit-test:latest /tmp/ 2>&1 | \

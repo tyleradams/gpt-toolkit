@@ -22,7 +22,7 @@ test-local:
 	./tests/test_local_build.sh
 
 test-debian:
-	./tests/test_debian_install.sh
+	./tests/test_debian_install.sh $(version)
 
 clean:
 	rm -rf target
