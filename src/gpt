@@ -8,27 +8,28 @@ import readline
 import tiktoken
 import json
 
-def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, pdf_files=None):
+def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, file_attachments=None):
     """Make a GPT API call with the modern OpenAI SDK."""
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
         organization=os.getenv("OPENAI_ORGANIZATION")
     )
 
-    # Handle PDF file uploads if provided
+    # Handle file uploads if provided
+    # Supports: PDF, images (PNG, JPG, GIF, WEBP), and Office docs (DOCX, PPTX, XLSX)
     file_ids = []
-    if pdf_files:
-        for pdf_path in pdf_files:
-            with open(pdf_path, "rb") as pdf_file:
+    if file_attachments:
+        for file_path in file_attachments:
+            with open(file_path, "rb") as file_obj:
                 uploaded_file = client.files.create(
-                    file=pdf_file,
+                    file=file_obj,
                     purpose="user_data"
                 )
                 file_ids.append(uploaded_file.id)
 
     # Build message content
     if file_ids:
-        # If PDFs are attached, content must be a list of content parts
+        # If files are attached, content must be a list of content parts
         message_content = []
         for file_id in file_ids:
             message_content.append({"type": "file", "file": {"file_id": file_id}})
@@ -109,21 +110,28 @@ def get_version():
               default='medium', help='Output verbosity for GPT-5 models (default: medium).')
 @click.option('--repl', is_flag=True, help='Enable REPL mode for conversations.')
 @click.option('-f', type=str, help='Use file instead of stdin.')
-@click.option('--pdf', multiple=True, type=click.Path(exists=True), help='Attach PDF file(s) to the prompt. Can be used multiple times.')
+@click.option('--file', 'file_attachments', multiple=True, type=click.Path(exists=True),
+              help='Attach file(s) to the prompt (PDF, images, Office docs). Can be used multiple times.')
+@click.option('--pdf', 'pdf_deprecated', multiple=True, type=click.Path(exists=True),
+              help='[DEPRECATED] Use --file instead. Attach PDF file(s) to the prompt.')
 @click.option('--tokens', is_flag=True, help='Count tokens in input instead of calling API. Outputs JSON with count and token IDs.')
 def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano,
-         repl, f, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, pdf, tokens):
+         repl, f, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity,
+         file_attachments, pdf_deprecated, tokens):
     """
     GPT command-line interface - a simple text filter for GPT models.
 
     Reads prompt from stdin (or file with -f), sends to GPT API, outputs to stdout.
 
     Features:
-    - PDF attachment support (--pdf)
+    - File attachment support: PDF, images (PNG, JPG, GIF, WEBP), Office docs (DOCX, PPTX, XLSX)
     - Token counting (--tokens)
     - REPL mode (--repl)
     - GPT-5 reasoning controls
     """
+    # Merge --pdf (deprecated) into --file for backwards compatibility
+    all_files = list(file_attachments) + list(pdf_deprecated)
+
     # Handle model shortcuts
     if model_set_to_gpt4:
         model = 'gpt-4'
@@ -137,8 +145,8 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     if tokens:
         if repl:
             raise click.UsageError("Cannot use --tokens with --repl mode")
-        if pdf:
-            raise click.UsageError("Cannot use --tokens with --pdf (tokens are for text only)")
+        if all_files:
+            raise click.UsageError("Cannot use --tokens with --file/--pdf (tokens are for text only)")
 
         # Read input
         if f:
@@ -162,11 +170,11 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     if repl and f:
         raise click.UsageError("Cannot enable both REPL mode and file input")
 
-    if repl and pdf:
-        raise click.UsageError("PDF attachments not supported in REPL mode")
+    if repl and all_files:
+        raise click.UsageError("File attachments not supported in REPL mode")
 
-    # Convert pdf tuple to list
-    pdf_files = list(pdf) if pdf else None
+    # Use merged file list (None if empty)
+    files_to_attach = all_files if all_files else None
 
     if repl:
         # REPL mode - interactive conversation
@@ -203,7 +211,7 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
         try:
             output = gpt(
                 message, model, temperature, top_p, stream, stop,
-                max_completion_tokens, reasoning_effort, verbosity, [], pdf_files
+                max_completion_tokens, reasoning_effort, verbosity, [], files_to_attach
             )
             print(output)
         except Exception as e:
