@@ -28,10 +28,19 @@ echo "Target: Ubuntu $TARGET_DISTRO (24.04 LTS)"
 echo "============================================================"
 echo
 
-# Check that git tag doesn't already exist
-if git tag -l | grep -q "^v$VERSION$"; then
-    echo "✗ ERROR: Git tag v$VERSION already exists"
-    exit 1
+# Check git tag - idempotent: allow if points to HEAD
+TAG_EXISTS=0
+if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null 2>&1; then
+    TAG_SHA=$(git rev-parse "v$VERSION^{commit}" 2>/dev/null)
+    HEAD_SHA=$(git rev-parse HEAD)
+    if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+        echo "✗ ERROR: Git tag v$VERSION exists but points to different commit"
+        echo "  Tag points to: $TAG_SHA"
+        echo "  HEAD is at:    $HEAD_SHA"
+        exit 1
+    fi
+    echo "✓ Tag v$VERSION already exists (points to HEAD) - will skip tag creation"
+    TAG_EXISTS=1
 fi
 
 # Verify working directory is clean
@@ -57,9 +66,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "Step 2/6: Generate debian/changelog"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Create temporary changelog entry
-TIMESTAMP=$(date -R)
-cat > /tmp/changelog_entry.txt << EOF
+# Check if changelog already has entry for this version
+if head -1 debian/changelog | grep -q "^gpt-toolkit ($VERSION-1) $TARGET_DISTRO"; then
+    echo "✓ Changelog already has entry for $VERSION - skipping generation"
+else
+    # Create temporary changelog entry
+    TIMESTAMP=$(date -R)
+    cat > /tmp/changelog_entry.txt << EOF
 gpt-toolkit ($VERSION-1) $TARGET_DISTRO; urgency=medium
 
   [Tyler Adams]
@@ -69,19 +82,26 @@ gpt-toolkit ($VERSION-1) $TARGET_DISTRO; urgency=medium
 
 EOF
 
-# Prepend to existing changelog
-cat debian/changelog >> /tmp/changelog_entry.txt
-mv /tmp/changelog_entry.txt debian/changelog
-echo "✓ Generated changelog for $VERSION targeting $TARGET_DISTRO"
+    # Prepend to existing changelog
+    cat debian/changelog >> /tmp/changelog_entry.txt
+    mv /tmp/changelog_entry.txt debian/changelog
+    echo "✓ Generated changelog for $VERSION targeting $TARGET_DISTRO"
+fi
 
 # Step 3: Build package
 echo
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Step 3/6: Build Package"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-make clean
-make package version=$VERSION
-echo "✓ Package built"
+
+# Check if package already built
+if [ -f "target/gpt-toolkit_${VERSION}-1.dsc" ]; then
+    echo "✓ Package already built (target/gpt-toolkit_${VERSION}-1.dsc exists) - skipping"
+else
+    make clean
+    make package version=$VERSION
+    echo "✓ Package built"
+fi
 
 # Step 4: Local build test (Docker)
 echo
@@ -111,35 +131,70 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "Step 5/6: Git Tag & Push"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Commit the changelog
-git add debian/changelog
-git commit -m "Release $VERSION
+# Check if changelog already committed
+if git log -1 --pretty=%s | grep -q "^Release $VERSION$" && git diff --quiet debian/changelog 2>/dev/null && git diff --cached --quiet debian/changelog 2>/dev/null; then
+    echo "✓ Changelog already committed - skipping commit"
+else
+    # Commit the changelog
+    git add debian/changelog
+    git commit -m "Release $VERSION
 
 Automated release to Ubuntu $TARGET_DISTRO
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
+    echo "✓ Committed changelog"
+fi
 
-# Create annotated tag
-git tag -a v$VERSION -m "Release v$VERSION
+# Create annotated tag (checked earlier)
+if [ "$TAG_EXISTS" -eq 1 ]; then
+    echo "✓ Tag v$VERSION already exists - skipping tag creation"
+else
+    git tag -a v$VERSION -m "Release v$VERSION
 
 Automated release - all tests passed
 🤖 Built with Claude Code"
-echo "✓ Created tag v$VERSION"
+    echo "✓ Created tag v$VERSION"
+fi
 
+# Push to GitHub (check what's already there)
 echo "Pushing to GitHub..."
-git push origin master
-git push origin v$VERSION
-echo "✓ Pushed to GitHub"
+PUSH_NEEDED=0
+
+if git branch -r --contains HEAD 2>/dev/null | grep -q "origin/master"; then
+    echo "✓ origin/master already has HEAD - skipping branch push"
+else
+    git push origin master
+    echo "✓ Pushed master to origin"
+    PUSH_NEEDED=1
+fi
+
+if git ls-remote --tags origin "refs/tags/v$VERSION" 2>/dev/null | grep -q "v$VERSION"; then
+    echo "✓ origin already has tag v$VERSION - skipping tag push"
+else
+    git push origin v$VERSION
+    echo "✓ Pushed tag v$VERSION to origin"
+    PUSH_NEEDED=1
+fi
+
+if [ "$PUSH_NEEDED" -eq 0 ]; then
+    echo "✓ Nothing to push (already on GitHub)"
+fi
 
 # Step 6: Publish to Launchpad
 echo
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Step 6/6: Publish to Launchpad PPA"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-make publish version=$VERSION
-echo "✓ Published to Launchpad"
+
+# Check if already uploaded (dput creates .upload file after successful upload)
+if [ -f "target/gpt-toolkit_${VERSION}-1_source.code-faster.upload" ]; then
+    echo "✓ Already uploaded to Launchpad (upload marker exists) - skipping"
+else
+    make publish version=$VERSION
+    echo "✓ Published to Launchpad"
+fi
 
 # Success summary
 echo
