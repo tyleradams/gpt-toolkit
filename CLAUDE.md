@@ -4,9 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-gpt-toolkit (v3.0.0) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
+gpt-toolkit (v5.0.0) is a command-line interface for OpenAI's GPT models (GPT-4, GPT-5). It's designed for Unix-style pipe-based workflows and is distributed as a Debian package via PPA.
 
-**Current Version**: 3.0.0 (see VERSION file)
+**Current Version**: 5.0.0
+
+**Version 5.0 Changes**:
+- **BREAKING**: Removed `-f`/`--input-file` option. Use stdin only for text input.
+- Fixed critical bug: undefined variable 'f' causing NameError on all basic usage
+- Added comprehensive test coverage (13 tests)
 
 **Version 3.0 Changes**: Simplified to a single `gpt` executable with all functionality built-in. Token counting is now available via `--tokens` flag. The utilities gpt-extract-code, gpt-to-substack, gpt-token-length, and gpt-tokens have been removed.
 
@@ -41,7 +46,7 @@ make publish version=<version>
 The toolkit provides a single executable: `gpt` (in `src/`).
 
 ### gpt
-The primary GPT interface. Takes input via stdin or file, outputs to stdout.
+The primary GPT interface. Takes input via stdin, outputs to stdout.
 
 **Basic usage:**
 ```bash
@@ -54,9 +59,6 @@ echo "prompt" | gpt -4
 # Use GPT-5 variants
 echo "prompt" | gpt --mini    # gpt-5-mini (faster, cheaper)
 echo "prompt" | gpt --nano    # gpt-5-nano (fastest, cheapest)
-
-# File input mode
-gpt -f prompt.txt
 
 # REPL mode for conversations
 gpt --repl
@@ -133,7 +135,7 @@ Tests verify:
 - Model selection flags
 - GPT-5 specific parameters (reasoning-effort, verbosity)
 - Error handling for invalid inputs
-- File input validation
+- stdin input functionality (no NameError bugs)
 
 ### 2. Local Pre-Publish Tests
 
@@ -206,9 +208,10 @@ for f in $(cat files.txt); do
 done
 wait
 
-# Shebang usage
-#!/usr/bin/env -S gpt -m gpt-5 -f
+# Shebang usage (stdin via heredoc)
+cat <<EOF | gpt
 Print out 1 to 10
+EOF
 
 # Token counting
 echo "How many tokens?" | gpt --tokens

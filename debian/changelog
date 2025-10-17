@@ -1,3 +1,15 @@
+gpt-toolkit (5.0.0-1) noble; urgency=medium
+
+  [Tyler Adams]
+  * BREAKING CHANGE: Remove -f/--input-file option (stdin only for text input)
+  * Fix critical bug: undefined variable 'f' causing NameError on all usage
+  * Add comprehensive test coverage (13 tests, all passing)
+  * Add test_stdin_filter_mode() to catch undefined variable bugs
+  * Add test_model_selection_no_crash() for model flag validation
+  * Remove misleading docstring references to -f flag
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Fri, 17 Oct 2025 17:10:44 -0400
+
 gpt-toolkit (4.1.0-1) noble; urgency=medium
 
   [Tyler Adams]
