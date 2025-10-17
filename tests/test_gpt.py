@@ -100,13 +100,44 @@ def test_invalid_verbosity():
     assert result.returncode != 0
     print("✓ Invalid verbosity rejected")
 
-def test_stdin_basic():
-    """Test that stdin input works (with --tokens to avoid API call)."""
+def test_stdin_with_tokens():
+    """Test that stdin input works with --tokens flag."""
     print("Testing stdin input with --tokens...")
     result = run_gpt('--tokens', stdin_data='Hello world')
     assert result.returncode == 0
     assert 'token_count' in result.stdout
-    print("✓ stdin input works")
+    print("✓ stdin with --tokens works")
+
+def test_stdin_filter_mode():
+    """Test that stdin filter mode doesn't crash with NameError.
+
+    This test would have caught the undefined variable 'f' bug.
+    The important thing is no NameError - it should either succeed (if API key present)
+    or fail with API error (if no key).
+    """
+    print("Testing stdin filter mode (no NameError expected)...")
+    result = run_gpt(stdin_data='test', expect_error=False)
+    # The critical check: should not have NameError for undefined 'f'
+    assert 'NameError' not in result.stderr, "Should not have NameError for undefined variable"
+    assert 'NameError' not in result.stdout, "Should not have NameError for undefined variable"
+    # If it succeeded (returncode 0), great. If it failed, should be API error not NameError.
+    if result.returncode != 0:
+        assert 'NameError' not in result.stderr
+    print("✓ stdin filter mode runs (no NameError)")
+
+def test_model_selection_no_crash():
+    """Test that model selection doesn't cause undefined variable issues."""
+    print("Testing model flags don't cause crashes...")
+    # Test with --tokens to avoid API call, but with different models
+    result = run_gpt('-4', '--tokens', stdin_data='test')
+    assert result.returncode == 0
+    assert '"model": "gpt-4"' in result.stdout
+    print("✓ -4 flag with stdin works")
+
+    result = run_gpt('--mini', '--tokens', stdin_data='test')
+    assert result.returncode == 0
+    assert '"model": "gpt-5-mini"' in result.stdout
+    print("✓ --mini flag with stdin works")
 
 def test_numeric_flags():
     """Test that numeric parameters are validated."""
@@ -152,7 +183,9 @@ def main():
         test_verbosity_flag,
         test_invalid_reasoning_effort,
         test_invalid_verbosity,
-        test_stdin_basic,
+        test_stdin_with_tokens,
+        test_stdin_filter_mode,
+        test_model_selection_no_crash,
         test_numeric_flags,
         test_executable_permissions,
         test_shebang,

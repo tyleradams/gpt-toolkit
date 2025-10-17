@@ -120,7 +120,7 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     """
     GPT command-line interface - a simple text filter for GPT models.
 
-    Reads prompt from stdin (or file with -f), sends to GPT API, outputs to stdout.
+    Reads prompt from stdin, sends to GPT API, outputs to stdout.
 
     Features:
     - File attachment support: PDF, images (PNG, JPG, GIF, WEBP), Office docs (DOCX, PPTX, XLSX)
