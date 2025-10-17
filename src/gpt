@@ -161,9 +161,6 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
         print(json.dumps(result, indent=2))
         return
 
-    if repl and f:
-        raise click.UsageError("Cannot enable both REPL mode and file input")
-
     if repl and all_files:
         raise click.UsageError("File attachments not supported in REPL mode")
 
@@ -196,11 +193,7 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
                 click.echo(f"Error: {e}", err=True)
     else:
         # Standard filter mode - text in, text out
-        if f:
-            with open(f) as fp:
-                message = fp.read()
-        else:
-            message = sys.stdin.read()
+        message = sys.stdin.read()
 
         try:
             output = gpt(

@@ -100,20 +100,13 @@ def test_invalid_verbosity():
     assert result.returncode != 0
     print("✓ Invalid verbosity rejected")
 
-def test_file_input_nonexistent():
-    """Test that non-existent file input fails gracefully."""
-    print("Testing non-existent file input...")
-    result = run_gpt('-f', '/nonexistent/file.txt', expect_error=True)
-    assert result.returncode != 0
-    print("✓ Non-existent file handled")
-
-def test_repl_and_file_exclusive():
-    """Test that --repl and -f cannot be used together."""
-    print("Testing --repl and -f exclusivity...")
-    result = run_gpt('--repl', '-f', 'somefile.txt', expect_error=True)
-    assert result.returncode != 0
-    assert 'repl' in result.stderr.lower() or 'file' in result.stderr.lower()
-    print("✓ --repl and -f are mutually exclusive")
+def test_stdin_basic():
+    """Test that stdin input works (with --tokens to avoid API call)."""
+    print("Testing stdin input with --tokens...")
+    result = run_gpt('--tokens', stdin_data='Hello world')
+    assert result.returncode == 0
+    assert 'token_count' in result.stdout
+    print("✓ stdin input works")
 
 def test_numeric_flags():
     """Test that numeric parameters are validated."""
@@ -159,8 +152,7 @@ def main():
         test_verbosity_flag,
         test_invalid_reasoning_effort,
         test_invalid_verbosity,
-        test_file_input_nonexistent,
-        test_repl_and_file_exclusive,
+        test_stdin_basic,
         test_numeric_flags,
         test_executable_permissions,
         test_shebang,
