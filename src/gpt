@@ -118,15 +118,55 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
          repl, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity,
          file_attachments, pdf_deprecated, tokens):
     """
-    GPT command-line interface - a simple text filter for GPT models.
+    GPT command-line interface - a Unix-style text filter for GPT models.
 
-    Reads prompt from stdin, sends to GPT API, outputs to stdout.
+    IMPORTANT: This is a STDIN/STDOUT filter. Input comes from STDIN, output goes to STDOUT.
+    DO NOT pass your prompt as a positional argument!
 
-    Features:
-    - File attachment support: PDF, images (PNG, JPG, GIF, WEBP), Office docs (DOCX, PPTX, XLSX)
-    - Token counting (--tokens)
-    - REPL mode (--repl)
-    - GPT-5 reasoning controls
+    \b
+    CORRECT USAGE:
+      echo "Count from 1 to 10" | gpt
+      cat file.txt | gpt
+      gpt < prompt.txt
+      cat data.txt | gpt <<'EOF'
+      Analyze this data and summarize the key points.
+      EOF
+
+    \b
+    CORRECT USAGE (with files):
+      echo "Summarize this PDF" | gpt --file document.pdf
+      cat prompt.txt file1.txt file2.txt | gpt
+      echo "Analyze these files" | gpt --file data.xlsx --file report.docx
+
+    \b
+    CORRECT USAGE (token counting):
+      echo "How many tokens is this?" | gpt --tokens
+      cat large-file.txt | gpt --tokens
+
+    \b
+    CORRECT USAGE (REPL mode):
+      gpt --repl
+
+    \b
+    ❌ WRONG - DO NOT DO THIS:
+      gpt "your prompt here"              # NO! Prompt is not a positional arg!
+      gpt --file data.csv "analyze this"  # NO! Input must come from stdin!
+      cat file.txt | gpt "summarize"      # NO! Don't pass prompt as argument!
+
+    \b
+    WHY THIS MATTERS:
+    gpt is designed as a Unix filter for pipes and redirection. Prompts MUST come
+    via stdin (echo, cat, heredoc, <, |). This enables composability:
+      cat file1 file2 file3 | gpt > output.txt
+      for f in *.txt; do cat "$f" | gpt >> results.txt; done
+
+    \b
+    FEATURES:
+    - File attachment: PDF, images (PNG/JPG/GIF/WEBP), Office docs (DOCX/PPTX/XLSX)
+    - Token counting: --tokens (outputs JSON, no API call)
+    - REPL mode: --repl (interactive conversation)
+    - GPT-5 reasoning: --reasoning-effort (minimal/low/medium/high)
+    - Model shortcuts: -4 (GPT-4), --mini (GPT-5-mini), --nano (GPT-5-nano)
     """
     # Merge --pdf (deprecated) into --file for backwards compatibility
     all_files = list(file_attachments) + list(pdf_deprecated)
