@@ -1,3 +1,13 @@
+gpt-toolkit (5.0.1-1) noble; urgency=medium
+
+  [Tyler Adams]
+  * Enhance --help with comprehensive usage examples and anti-patterns
+  * Add explicit "DO NOT" section to prevent LLM misuse
+  * Show correct stdin usage patterns (echo, cat, heredoc)
+  * Explain Unix filter philosophy and composability
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Mon, 20 Oct 2025 20:11:06 -0400
+
 gpt-toolkit (5.0.0-1) noble; urgency=medium
 
   [Tyler Adams]
