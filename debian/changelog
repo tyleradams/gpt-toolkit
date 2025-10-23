@@ -1,3 +1,15 @@
+gpt-toolkit (5.1.0-1) noble; urgency=medium
+
+  [Tyler Adams]
+  * Add GPT-5 Codex support via Responses API
+  * Add --codex flag shortcut for gpt-5-codex model
+  * Support /v1/responses endpoint for codex models
+  * Auto-detect models ending in -codex for proper API routing
+  * Map Responses API parameters (input, max_output_tokens)
+  * Add error handling for unsupported Codex features (REPL, files)
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Wed, 22 Oct 2025 19:30:00 -0400
+
 gpt-toolkit (5.0.1-1) noble; urgency=medium
 
   [Tyler Adams]
