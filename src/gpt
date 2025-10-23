@@ -8,6 +8,12 @@ import readline
 import tiktoken
 import json
 
+def uses_responses_api(model):
+    """Determine if a model uses the Responses API instead of Chat Completions API."""
+    # Models that use the Responses API (/v1/responses)
+    responses_api_models = ['gpt-5-codex']
+    return model in responses_api_models or model.endswith('-codex')
+
 def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, file_attachments=None):
     """Make a GPT API call with the modern OpenAI SDK."""
     client = OpenAI(
@@ -15,53 +21,85 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
         organization=os.getenv("OPENAI_ORGANIZATION")
     )
 
-    # Handle file uploads if provided
-    # Supports: PDF, images (PNG, JPG, GIF, WEBP), and Office docs (DOCX, PPTX, XLSX)
-    file_ids = []
-    if file_attachments:
-        for file_path in file_attachments:
-            with open(file_path, "rb") as file_obj:
-                uploaded_file = client.files.create(
-                    file=file_obj,
-                    purpose="user_data"
-                )
-                file_ids.append(uploaded_file.id)
+    # Check if this model uses the Responses API
+    if uses_responses_api(model):
+        # Responses API does not support conversation history or file attachments
+        if conversation_history:
+            raise click.UsageError(f"Model {model} does not support conversation history (REPL mode)")
+        if file_attachments:
+            raise click.UsageError(f"Model {model} does not support file attachments")
 
-    # Build message content
-    if file_ids:
-        # If files are attached, content must be a list of content parts
-        message_content = []
-        for file_id in file_ids:
-            message_content.append({"type": "file", "file": {"file_id": file_id}})
-        message_content.append({"type": "text", "text": content})
+        # Build Responses API parameters
+        params = {
+            "model": model,
+            "input": content,
+            "temperature": temperature,
+            "top_p": top_p,
+            "stream": stream,
+        }
+
+        # Add optional parameters
+        if stop:
+            params["stop"] = stop
+        if max_completion_tokens:
+            # Responses API uses max_output_tokens instead of max_completion_tokens
+            params["max_output_tokens"] = max_completion_tokens
+
+        # Note: Responses API doesn't support reasoning_effort or verbosity parameters
+
+        # Make the Responses API call
+        response = client.responses.create(**params)
+        return response.output_text
+
     else:
-        # Standard text-only content
-        message_content = content
+        # Chat Completions API (original implementation)
+        # Handle file uploads if provided
+        # Supports: PDF, images (PNG, JPG, GIF, WEBP), and Office docs (DOCX, PPTX, XLSX)
+        file_ids = []
+        if file_attachments:
+            for file_path in file_attachments:
+                with open(file_path, "rb") as file_obj:
+                    uploaded_file = client.files.create(
+                        file=file_obj,
+                        purpose="user_data"
+                    )
+                    file_ids.append(uploaded_file.id)
 
-    # Build the API parameters
-    params = {
-        "model": model,
-        "messages": [*conversation_history, {"role": "user", "content": message_content}],
-        "temperature": temperature,
-        "top_p": top_p,
-        "stream": stream,
-    }
+        # Build message content
+        if file_ids:
+            # If files are attached, content must be a list of content parts
+            message_content = []
+            for file_id in file_ids:
+                message_content.append({"type": "file", "file": {"file_id": file_id}})
+            message_content.append({"type": "text", "text": content})
+        else:
+            # Standard text-only content
+            message_content = content
 
-    # Add optional parameters only if specified
-    if stop:
-        params["stop"] = stop
-    if max_completion_tokens:
-        params["max_completion_tokens"] = max_completion_tokens
+        # Build the API parameters
+        params = {
+            "model": model,
+            "messages": [*conversation_history, {"role": "user", "content": message_content}],
+            "temperature": temperature,
+            "top_p": top_p,
+            "stream": stream,
+        }
 
-    # Add GPT-5 specific parameters for reasoning models
-    if model.startswith("gpt-5") or model.startswith("o"):
-        if reasoning_effort:
-            params["reasoning_effort"] = reasoning_effort
-        if verbosity:
-            params["verbosity"] = verbosity
+        # Add optional parameters only if specified
+        if stop:
+            params["stop"] = stop
+        if max_completion_tokens:
+            params["max_completion_tokens"] = max_completion_tokens
 
-    response = client.chat.completions.create(**params)
-    return response.choices[0].message.content
+        # Add GPT-5 specific parameters for reasoning models
+        if model.startswith("gpt-5") or model.startswith("o"):
+            if reasoning_effort:
+                params["reasoning_effort"] = reasoning_effort
+            if verbosity:
+                params["verbosity"] = verbosity
+
+        response = client.chat.completions.create(**params)
+        return response.choices[0].message.content
 
 
 def count_tokens(text, model):
@@ -99,6 +137,7 @@ def get_version():
 @click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4')
 @click.option('--mini', 'model_set_to_mini', is_flag=True, help='Sets the model to gpt-5-mini')
 @click.option('--nano', 'model_set_to_nano', is_flag=True, help='Sets the model to gpt-5-nano')
+@click.option('--codex', 'model_set_to_codex', is_flag=True, help='Sets the model to gpt-5-codex (uses Responses API)')
 @click.option('--temperature', type=float, default=1.0, help='Sets the sampling temperature between 0 and 2.')
 @click.option('--top-p', type=float, default=1.0, help='Sets nucleus sampling parameter.')
 @click.option('--stream', type=bool, default=False, help='Stream partial message deltas.')
@@ -114,7 +153,7 @@ def get_version():
 @click.option('--pdf', 'pdf_deprecated', multiple=True, type=click.Path(exists=True),
               help='[DEPRECATED] Use --file instead. Attach PDF file(s) to the prompt.')
 @click.option('--tokens', is_flag=True, help='Count tokens in input instead of calling API. Outputs JSON with count and token IDs.')
-def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano,
+def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano, model_set_to_codex,
          repl, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity,
          file_attachments, pdf_deprecated, tokens):
     """
@@ -166,7 +205,8 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     - Token counting: --tokens (outputs JSON, no API call)
     - REPL mode: --repl (interactive conversation)
     - GPT-5 reasoning: --reasoning-effort (minimal/low/medium/high)
-    - Model shortcuts: -4 (GPT-4), --mini (GPT-5-mini), --nano (GPT-5-nano)
+    - Model shortcuts: -4 (GPT-4), --mini (GPT-5-mini), --nano (GPT-5-nano), --codex (GPT-5-Codex)
+    - GPT-5 Codex: Uses Responses API (no file attachments or REPL mode support)
     """
     # Merge --pdf (deprecated) into --file for backwards compatibility
     all_files = list(file_attachments) + list(pdf_deprecated)
@@ -178,6 +218,8 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
         model = 'gpt-5-mini'
     elif model_set_to_nano:
         model = 'gpt-5-nano'
+    elif model_set_to_codex:
+        model = 'gpt-5-codex'
     # -5 flag or default keeps model='gpt-5'
 
     # Token counting mode
