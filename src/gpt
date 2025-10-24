@@ -7,6 +7,8 @@ import sys
 import readline
 import tiktoken
 import json
+import base64
+import mimetypes
 
 def uses_responses_api(model):
     """Determine if a model uses the Responses API instead of Chat Completions API."""
@@ -14,7 +16,35 @@ def uses_responses_api(model):
     responses_api_models = ['gpt-5-codex']
     return model in responses_api_models or model.endswith('-codex')
 
-def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, file_attachments=None):
+def is_image_file(file_path):
+    """Detect if a file is an image based on extension."""
+    image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'}
+    ext = os.path.splitext(file_path)[1].lower()
+    return ext in image_extensions
+
+def encode_image_to_base64(file_path):
+    """Encode an image file to base64."""
+    with open(file_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
+
+def get_image_mime_type(file_path):
+    """Get MIME type for an image file."""
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type and mime_type.startswith('image/'):
+        return mime_type
+    # Fallback based on extension
+    ext = os.path.splitext(file_path)[1].lower()
+    mime_map = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.bmp': 'image/bmp'
+    }
+    return mime_map.get(ext, 'image/jpeg')
+
+def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, file_attachments=None, detail="auto"):
     """Make a GPT API call with the modern OpenAI SDK."""
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
@@ -53,27 +83,39 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
 
     else:
         # Chat Completions API (original implementation)
-        # Handle file uploads if provided
-        # Supports: PDF, images (PNG, JPG, GIF, WEBP), and Office docs (DOCX, PPTX, XLSX)
-        file_ids = []
+        # Handle file attachments if provided
+        # Images: base64 encoded (PNG, JPG, GIF, WEBP)
+        # Documents: Files API (PDF, DOCX, PPTX, XLSX)
+        message_content = []
+
         if file_attachments:
             for file_path in file_attachments:
-                with open(file_path, "rb") as file_obj:
-                    uploaded_file = client.files.create(
-                        file=file_obj,
-                        purpose="user_data"
-                    )
-                    file_ids.append(uploaded_file.id)
+                if is_image_file(file_path):
+                    # Images: use base64 encoding with vision API
+                    base64_image = encode_image_to_base64(file_path)
+                    mime_type = get_image_mime_type(file_path)
+                    message_content.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{base64_image}",
+                            "detail": detail
+                        }
+                    })
+                else:
+                    # PDFs and Office docs: use Files API
+                    with open(file_path, "rb") as file_obj:
+                        uploaded_file = client.files.create(
+                            file=file_obj,
+                            purpose="user_data"
+                        )
+                        message_content.append({"type": "file", "file": {"file_id": uploaded_file.id}})
 
-        # Build message content
-        if file_ids:
-            # If files are attached, content must be a list of content parts
-            message_content = []
-            for file_id in file_ids:
-                message_content.append({"type": "file", "file": {"file_id": file_id}})
+        # Add text content
+        if file_attachments:
+            # Files were attached, content is already a list
             message_content.append({"type": "text", "text": content})
         else:
-            # Standard text-only content
+            # No files, use simple string content
             message_content = content
 
         # Build the API parameters
@@ -149,13 +191,15 @@ def get_version():
               default='medium', help='Output verbosity for GPT-5 models (default: medium).')
 @click.option('--repl', is_flag=True, help='Enable REPL mode for conversations.')
 @click.option('--file', 'file_attachments', multiple=True, type=click.Path(exists=True),
-              help='Attach file(s) to the prompt (PDF, images, Office docs). Can be used multiple times.')
+              help='Attach file(s) to the prompt. Images (PNG/JPG/GIF/WEBP) use vision, PDFs/Office docs use Files API.')
+@click.option('--detail', type=click.Choice(['low', 'high', 'auto'], case_sensitive=False),
+              default='auto', help='Vision detail level for images: low (fast), high (detailed), auto (default).')
 @click.option('--pdf', 'pdf_deprecated', multiple=True, type=click.Path(exists=True),
               help='[DEPRECATED] Use --file instead. Attach PDF file(s) to the prompt.')
 @click.option('--tokens', is_flag=True, help='Count tokens in input instead of calling API. Outputs JSON with count and token IDs.')
 def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano, model_set_to_codex,
          repl, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity,
-         file_attachments, pdf_deprecated, tokens):
+         file_attachments, detail, pdf_deprecated, tokens):
     """
     GPT command-line interface - a Unix-style text filter for GPT models.
 
@@ -174,8 +218,10 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     \b
     CORRECT USAGE (with files):
       echo "Summarize this PDF" | gpt --file document.pdf
-      cat prompt.txt file1.txt file2.txt | gpt
-      echo "Analyze these files" | gpt --file data.xlsx --file report.docx
+      echo "What's in this image?" | gpt --file photo.jpg
+      echo "Compare these images" | gpt --file img1.png --file img2.png
+      echo "Analyze this data" | gpt --file data.xlsx --file report.docx
+      echo "Detailed analysis" | gpt --file diagram.png --detail high
 
     \b
     CORRECT USAGE (token counting):
@@ -201,7 +247,9 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
 
     \b
     FEATURES:
-    - File attachment: PDF, images (PNG/JPG/GIF/WEBP), Office docs (DOCX/PPTX/XLSX)
+    - Vision: Images (PNG/JPG/JPEG/GIF/WEBP/BMP) via base64 encoding
+    - Documents: PDF, Office files (DOCX/PPTX/XLSX) via Files API
+    - Image detail: --detail (low/high/auto) controls vision processing quality
     - Token counting: --tokens (outputs JSON, no API call)
     - REPL mode: --repl (interactive conversation)
     - GPT-5 reasoning: --reasoning-effort (minimal/low/medium/high)
@@ -266,7 +314,8 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
             try:
                 assistant_response = gpt(
                     content, model, temperature, top_p, stream, stop,
-                    max_completion_tokens, reasoning_effort, verbosity, conversation_history
+                    max_completion_tokens, reasoning_effort, verbosity, conversation_history,
+                    file_attachments=None, detail=detail
                 )
                 conversation_history.append({"role": "user", "content": content})
                 conversation_history.append({"role": "assistant", "content": assistant_response})
@@ -280,7 +329,8 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
         try:
             output = gpt(
                 message, model, temperature, top_p, stream, stop,
-                max_completion_tokens, reasoning_effort, verbosity, [], files_to_attach
+                max_completion_tokens, reasoning_effort, verbosity, [],
+                file_attachments=files_to_attach, detail=detail
             )
             print(output)
         except Exception as e:
