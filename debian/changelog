@@ -1,3 +1,18 @@
+gpt-toolkit (5.2.0-1) noble; urgency=medium
+
+  [Tyler Adams]
+  * Add smart image support with vision API
+  * Auto-detect file type: images use base64, documents use Files API
+  * Add --detail parameter for vision quality (low/high/auto)
+  * Restrict to GPT-4o and GPT-5 models only
+  * Block older models (gpt-3.5-turbo, gpt-4, gpt-4-turbo)
+  * Change -4 flag to use gpt-4o instead of gpt-4
+  * Support PNG, JPG, JPEG, GIF, WEBP, BMP images
+  * Images sent via base64 encoding to vision API
+  * PDFs and Office docs continue using Files API
+
+ -- Tyler Adams <tyler@blitzblitzblitz.com>  Fri, 24 Oct 2025 11:04:00 -0400
+
 gpt-toolkit (5.1.0-1) noble; urgency=medium
 
   [Tyler Adams]
