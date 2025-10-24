@@ -10,6 +10,17 @@ import json
 import base64
 import mimetypes
 
+def validate_model(model):
+    """Validate that the model is allowed (only GPT-4o and GPT-5 series)."""
+    allowed_prefixes = ['gpt-4o', 'gpt-5']
+
+    # Check if model starts with any allowed prefix
+    if not any(model.startswith(prefix) for prefix in allowed_prefixes):
+        raise click.UsageError(
+            f"Model '{model}' is not allowed. Only GPT-4o and GPT-5 models are supported.\n"
+            f"Allowed models: gpt-4o, gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-codex, etc."
+        )
+
 def uses_responses_api(model):
     """Determine if a model uses the Responses API instead of Chat Completions API."""
     # Models that use the Responses API (/v1/responses)
@@ -176,7 +187,7 @@ def get_version():
 @click.version_option(version=get_version(), prog_name='gpt-toolkit')
 @click.option('-m', '--model', default='gpt-5', help='Specifies the AI model to use (default: gpt-5).')
 @click.option('-5', 'model_set_to_gpt5', is_flag=True, help='Sets the model to gpt-5 (default)')
-@click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4')
+@click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4o')
 @click.option('--mini', 'model_set_to_mini', is_flag=True, help='Sets the model to gpt-5-mini')
 @click.option('--nano', 'model_set_to_nano', is_flag=True, help='Sets the model to gpt-5-nano')
 @click.option('--codex', 'model_set_to_codex', is_flag=True, help='Sets the model to gpt-5-codex (uses Responses API)')
@@ -253,7 +264,8 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     - Token counting: --tokens (outputs JSON, no API call)
     - REPL mode: --repl (interactive conversation)
     - GPT-5 reasoning: --reasoning-effort (minimal/low/medium/high)
-    - Model shortcuts: -4 (GPT-4), --mini (GPT-5-mini), --nano (GPT-5-nano), --codex (GPT-5-Codex)
+    - Model shortcuts: -4 (GPT-4o), --mini (GPT-5-mini), --nano (GPT-5-nano), --codex (GPT-5-Codex)
+    - Model restriction: Only GPT-4o and GPT-5 series allowed
     - GPT-5 Codex: Uses Responses API (no file attachments or REPL mode support)
     """
     # Merge --pdf (deprecated) into --file for backwards compatibility
@@ -261,7 +273,7 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
 
     # Handle model shortcuts
     if model_set_to_gpt4:
-        model = 'gpt-4'
+        model = 'gpt-4o'
     elif model_set_to_mini:
         model = 'gpt-5-mini'
     elif model_set_to_nano:
@@ -269,6 +281,9 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
     elif model_set_to_codex:
         model = 'gpt-5-codex'
     # -5 flag or default keeps model='gpt-5'
+
+    # Validate that only GPT-4o and GPT-5 models are allowed
+    validate_model(model)
 
     # Token counting mode
     if tokens:

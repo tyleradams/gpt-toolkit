@@ -131,7 +131,7 @@ def test_model_selection_no_crash():
     # Test with --tokens to avoid API call, but with different models
     result = run_gpt('-4', '--tokens', stdin_data='test')
     assert result.returncode == 0
-    assert '"model": "gpt-4"' in result.stdout
+    assert '"model": "gpt-4o"' in result.stdout
     print("✓ -4 flag with stdin works")
 
     result = run_gpt('--mini', '--tokens', stdin_data='test')
