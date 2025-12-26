@@ -168,6 +168,25 @@ def test_shebang():
         assert first_line == '#!/usr/bin/env python3', f"Invalid shebang: {first_line}"
     print("✓ Shebang is correct")
 
+def test_retry_flags():
+    """Test that retry/resilience flags are accepted."""
+    print("Testing retry flags...")
+
+    # Test --timeout flag
+    result = run_gpt('--timeout', '30', '--help')
+    assert 'Usage: gpt' in result.stdout
+    print("✓ --timeout flag accepted")
+
+    # Test --debug flag
+    result = run_gpt('--debug', '--help')
+    assert 'Usage: gpt' in result.stdout
+    print("✓ --debug flag accepted")
+
+    # Test --fail-after-chunks flag (for testing)
+    result = run_gpt('--fail-after-chunks', '10', '--help')
+    assert 'Usage: gpt' in result.stdout
+    print("✓ --fail-after-chunks flag accepted")
+
 def main():
     """Run all tests."""
     print("=" * 60)
@@ -189,6 +208,7 @@ def main():
         test_numeric_flags,
         test_executable_permissions,
         test_shebang,
+        test_retry_flags,
     ]
 
     failed = []

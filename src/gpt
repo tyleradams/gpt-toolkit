@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 import os
-import click
-from openai import OpenAI
 import sys
-import readline
-import tiktoken
+import time
 import json
 import base64
 import mimetypes
+import readline
+import click
+import tiktoken
+from openai import OpenAI, APIConnectionError, APITimeoutError
 
 def validate_model(model):
     """Validate that the model is allowed (only GPT-4o and GPT-5 series)."""
@@ -55,11 +56,69 @@ def get_image_mime_type(file_path):
     }
     return mime_map.get(ext, 'image/jpeg')
 
-def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, file_attachments=None, detail="auto"):
+
+def stream_response(client, params, max_retries=5, debug=False, fail_after_chunks=None):
+    """Stream a GPT response with silent retry on connection errors.
+
+    Only counts toward max_retries if no progress was made.
+    If we got some data before failing, retry counter resets.
+    On retry with partial data, asks model to continue from where it stopped.
+    """
+    params["stream"] = True
+    consecutive_failures = 0
+    chunk_count = 0
+    accumulated_response = ""
+    original_messages = params["messages"].copy()
+
+    while consecutive_failures <= max_retries:
+        got_data_this_attempt = False
+        try:
+            stream = client.chat.completions.create(**params)
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    text = chunk.choices[0].delta.content
+                    sys.stdout.write(text)
+                    sys.stdout.flush()
+                    accumulated_response += text
+                    got_data_this_attempt = True
+                    chunk_count += 1
+                    if fail_after_chunks and chunk_count >= fail_after_chunks:
+                        import httpx
+                        raise APIConnectionError(request=httpx.Request("POST", "https://api.openai.com"))
+            if accumulated_response and not accumulated_response.endswith('\n'):
+                sys.stdout.write('\n')
+                sys.stdout.flush()
+            return
+        except (APIConnectionError, APITimeoutError) as e:
+            chunk_count = 0  # Reset chunk count for next attempt
+            if got_data_this_attempt:
+                # Made progress - reset failure counter, add partial to messages for continuation
+                consecutive_failures = 0
+                # Use assistant_prefix to continue from partial response
+                params["messages"] = original_messages + [
+                    {"role": "assistant", "content": accumulated_response}
+                ]
+                if debug:
+                    click.echo(f"\n[retry: got {len(accumulated_response)} chars, continuing]", err=True)
+            else:
+                # No progress - count toward giving up
+                consecutive_failures += 1
+                if debug:
+                    click.echo(f"\n[retry: no progress, failures={consecutive_failures}/{max_retries}]", err=True)
+
+            if consecutive_failures > max_retries:
+                raise
+
+            time.sleep(min(2 ** consecutive_failures, 8))
+
+
+def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, file_attachments=None, detail="auto", timeout=180.0, debug=False, fail_after_chunks=None):
     """Make a GPT API call with the modern OpenAI SDK."""
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
-        organization=os.getenv("OPENAI_ORGANIZATION")
+        organization=os.getenv("OPENAI_ORGANIZATION"),
+        timeout=timeout,
+        max_retries=0   # We handle retries ourselves
     )
 
     # Check if this model uses the Responses API
@@ -135,7 +194,6 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
             "messages": [*conversation_history, {"role": "user", "content": message_content}],
             "temperature": temperature,
             "top_p": top_p,
-            "stream": stream,
         }
 
         # Add optional parameters only if specified
@@ -151,8 +209,7 @@ def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens,
             if verbosity:
                 params["verbosity"] = verbosity
 
-        response = client.chat.completions.create(**params)
-        return response.choices[0].message.content
+        return stream_response(client, params, debug=debug, fail_after_chunks=fail_after_chunks)
 
 
 def count_tokens(text, model):
@@ -208,9 +265,12 @@ def get_version():
 @click.option('--pdf', 'pdf_deprecated', multiple=True, type=click.Path(exists=True),
               help='[DEPRECATED] Use --file instead. Attach PDF file(s) to the prompt.')
 @click.option('--tokens', is_flag=True, help='Count tokens in input instead of calling API. Outputs JSON with count and token IDs.')
+@click.option('--timeout', type=float, default=180.0, help='Request timeout in seconds (default: 180).')
+@click.option('--debug', is_flag=True, help='Show retry debug info on stderr.')
+@click.option('--fail-after-chunks', type=int, default=None, help='Simulate network failure after N chunks (for testing).')
 def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano, model_set_to_codex,
          repl, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity,
-         file_attachments, detail, pdf_deprecated, tokens):
+         file_attachments, detail, pdf_deprecated, tokens, timeout, debug, fail_after_chunks):
     """
     GPT command-line interface - a Unix-style text filter for GPT models.
 
@@ -330,11 +390,12 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
                 assistant_response = gpt(
                     content, model, temperature, top_p, stream, stop,
                     max_completion_tokens, reasoning_effort, verbosity, conversation_history,
-                    file_attachments=None, detail=detail
+                    file_attachments=None, detail=detail, timeout=timeout, debug=debug,
+                    fail_after_chunks=fail_after_chunks
                 )
                 conversation_history.append({"role": "user", "content": content})
                 conversation_history.append({"role": "assistant", "content": assistant_response})
-                click.echo(assistant_response)
+                # Output already streamed by gpt()
             except Exception as e:
                 click.echo(f"Error: {e}", err=True)
     else:
@@ -342,12 +403,13 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
         message = sys.stdin.read()
 
         try:
-            output = gpt(
+            gpt(
                 message, model, temperature, top_p, stream, stop,
                 max_completion_tokens, reasoning_effort, verbosity, [],
-                file_attachments=files_to_attach, detail=detail
+                file_attachments=files_to_attach, detail=detail, timeout=timeout, debug=debug,
+                fail_after_chunks=fail_after_chunks
             )
-            print(output)
+            # Output already streamed by gpt()
         except Exception as e:
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
