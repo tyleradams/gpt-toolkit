@@ -177,10 +177,14 @@ def test_retry_flags():
     assert 'Usage: gpt' in result.stdout
     print("✓ --timeout flag accepted")
 
-    # Test --debug flag
-    result = run_gpt('--debug', '--help')
+    # Test -v/--verbose flag
+    result = run_gpt('-v', '--help')
     assert 'Usage: gpt' in result.stdout
-    print("✓ --debug flag accepted")
+    print("✓ -v flag accepted")
+
+    result = run_gpt('--verbose', '--help')
+    assert 'Usage: gpt' in result.stdout
+    print("✓ --verbose flag accepted")
 
     # Test --fail-after-chunks flag (for testing)
     result = run_gpt('--fail-after-chunks', '10', '--help')

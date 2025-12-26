@@ -4,12 +4,19 @@ import os
 import sys
 import time
 import json
+from datetime import datetime, timezone
 import base64
 import mimetypes
 import readline
 import click
 import tiktoken
-from openai import OpenAI, APIConnectionError, APITimeoutError
+from openai import OpenAI, APIConnectionError, APITimeoutError, APIError
+
+
+def ts():
+    """Return ISO 8601 UTC timestamp."""
+    return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
 
 def validate_model(model):
     """Validate that the model is allowed (only GPT-4o and GPT-5 series)."""
@@ -69,11 +76,21 @@ def stream_response(client, params, max_retries=5, debug=False, fail_after_chunk
     chunk_count = 0
     accumulated_response = ""
     original_messages = params["messages"].copy()
+    start_time = time.time()
+
+    if debug:
+        click.echo(f"[{ts()}] model={params.get('model')} max_retries={max_retries}", err=True)
 
     while consecutive_failures <= max_retries:
         got_data_this_attempt = False
+        attempt_start = time.time()
         try:
+            if debug:
+                click.echo(f"[{ts()}] connecting to API...", err=True)
             stream = client.chat.completions.create(**params)
+            if debug:
+                connect_time = time.time() - attempt_start
+                click.echo(f"[{ts()}] streaming started (connect: {connect_time:.2f}s)", err=True)
             for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     text = chunk.choices[0].delta.content
@@ -82,14 +99,21 @@ def stream_response(client, params, max_retries=5, debug=False, fail_after_chunk
                     accumulated_response += text
                     got_data_this_attempt = True
                     chunk_count += 1
+                    if debug:
+                        click.echo(f"\r[{ts()}] chunks={chunk_count} chars={len(accumulated_response)}", nl=False, err=True)
                     if fail_after_chunks and chunk_count >= fail_after_chunks:
                         import httpx
                         raise APIConnectionError(request=httpx.Request("POST", "https://api.openai.com"))
             if accumulated_response and not accumulated_response.endswith('\n'):
                 sys.stdout.write('\n')
                 sys.stdout.flush()
+            if debug:
+                total_time = time.time() - start_time
+                click.echo(f"\n[{ts()}] complete: {chunk_count} chunks, {len(accumulated_response)} chars in {total_time:.2f}s", err=True)
             return
-        except (APIConnectionError, APITimeoutError) as e:
+        except (APIConnectionError, APITimeoutError, APIError) as e:
+            error_type = type(e).__name__
+            attempt_duration = time.time() - attempt_start
             chunk_count = 0  # Reset chunk count for next attempt
             if got_data_this_attempt:
                 # Made progress - reset failure counter, add partial to messages for continuation
@@ -99,17 +123,21 @@ def stream_response(client, params, max_retries=5, debug=False, fail_after_chunk
                     {"role": "assistant", "content": accumulated_response}
                 ]
                 if debug:
-                    click.echo(f"\n[retry: got {len(accumulated_response)} chars, continuing]", err=True)
+                    click.echo(f"\n[{ts()}] {error_type} after {attempt_duration:.2f}s, got {len(accumulated_response)} chars, continuing", err=True)
             else:
                 # No progress - count toward giving up
                 consecutive_failures += 1
                 if debug:
-                    click.echo(f"\n[retry: no progress, failures={consecutive_failures}/{max_retries}]", err=True)
+                    click.echo(f"\n[{ts()}] {error_type} after {attempt_duration:.2f}s: {e}", err=True)
+                    click.echo(f"[{ts()}] no progress, failures={consecutive_failures}/{max_retries}", err=True)
 
             if consecutive_failures > max_retries:
                 raise
 
-            time.sleep(min(2 ** consecutive_failures, 8))
+            wait_time = min(2 ** consecutive_failures, 8)
+            if debug:
+                click.echo(f"[{ts()}] waiting {wait_time}s before retry", err=True)
+            time.sleep(wait_time)
 
 
 def gpt(content, model, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity, conversation_history, file_attachments=None, detail="auto", timeout=180.0, debug=False, fail_after_chunks=None):
@@ -266,7 +294,7 @@ def get_version():
               help='[DEPRECATED] Use --file instead. Attach PDF file(s) to the prompt.')
 @click.option('--tokens', is_flag=True, help='Count tokens in input instead of calling API. Outputs JSON with count and token IDs.')
 @click.option('--timeout', type=float, default=180.0, help='Request timeout in seconds (default: 180).')
-@click.option('--debug', is_flag=True, help='Show retry debug info on stderr.')
+@click.option('-v', '--verbose', 'debug', is_flag=True, help='Show progress and retry info on stderr.')
 @click.option('--fail-after-chunks', type=int, default=None, help='Simulate network failure after N chunks (for testing).')
 def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_set_to_nano, model_set_to_codex,
          repl, temperature, top_p, stream, stop, max_completion_tokens, reasoning_effort, verbosity,
