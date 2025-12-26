@@ -272,8 +272,8 @@ def get_version():
 
 @click.command(context_settings={"ignore_unknown_options": True, "allow_extra_args": True, "help_option_names": ['-h', '--help']})
 @click.version_option(version=get_version(), prog_name='gpt-toolkit')
-@click.option('-m', '--model', default='gpt-5', help='Specifies the AI model to use (default: gpt-5).')
-@click.option('-5', 'model_set_to_gpt5', is_flag=True, help='Sets the model to gpt-5 (default)')
+@click.option('-m', '--model', default='gpt-5.2', help='Specifies the AI model to use (default: gpt-5.2).')
+@click.option('-5', 'model_set_to_gpt5', is_flag=True, help='Sets the model to gpt-5.2 (default)')
 @click.option('-4', 'model_set_to_gpt4', is_flag=True, help='Sets the model to gpt-4o')
 @click.option('--mini', 'model_set_to_mini', is_flag=True, help='Sets the model to gpt-5-mini')
 @click.option('--nano', 'model_set_to_nano', is_flag=True, help='Sets the model to gpt-5-nano')
@@ -370,7 +370,7 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
         model = 'gpt-5-nano'
     elif model_set_to_codex:
         model = 'gpt-5-codex'
-    # -5 flag or default keeps model='gpt-5'
+    # -5 flag or default keeps model='gpt-5.2'
 
     # Validate that only GPT-4o and GPT-5 models are allowed
     validate_model(model)
