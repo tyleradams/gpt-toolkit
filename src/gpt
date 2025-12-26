@@ -132,6 +132,8 @@ def stream_response(client, params, max_retries=5, debug=False, fail_after_chunk
                     click.echo(f"[{ts()}] no progress, failures={consecutive_failures}/{max_retries}", err=True)
 
             if consecutive_failures > max_retries:
+                if debug:
+                    click.echo(f"[{ts()}] giving up after {max_retries} consecutive failures", err=True)
                 raise
 
             wait_time = min(2 ** consecutive_failures, 8)
@@ -439,7 +441,10 @@ def main(model, model_set_to_gpt5, model_set_to_gpt4, model_set_to_mini, model_s
             )
             # Output already streamed by gpt()
         except Exception as e:
-            click.echo(f"Error: {e}", err=True)
+            if debug:
+                click.echo(f"[{ts()}] FATAL: {type(e).__name__}: {e}", err=True)
+            else:
+                click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
 
